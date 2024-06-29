@@ -768,3 +768,102 @@ instructions that produces the correct results and
 consumes them
 
 
+
+# PDF 8 - Static Scheduling and VLIW Architectures
+
+**Dynamic Scheduling:**
+Depend on the hardware to
+locate parallelism
+
+Hardware intensive approaches dominate desktop and
+server markets
+
+**Static Scheduling:**
+Rely on software for identifying
+potential parallelism
+
+
+## Dynamic Scheduling
+Basically: Instructions are fetched and issued in program order (in-order-issue)
+* Execution begins as soon as operands are available
+
+possibly, out of order execution
+
+note:
+possible even with
+pipelined scalar architectures
+.
+* Out-of order execution introduces possibility of **WAR, WAW** data
+hazards.
+* Out-of order execution implies out of order completion unless there
+is a re-order buffer to get in-order completion
+
+<br>
+
+#### Superscalar and ***VLIW***
+```
+IdealCPI < 1
+```
+
+#### Dynamic scheduling
+#### Pipelining
+Initial goal
+```
+IdealCPI = 1
+```
+#### Sequential
+```
+IdealCPI > 1
+```
+
+
+
+## VLIW
+* fixed number of instructions (4-16)
+
+* **scheduled by the compiler;** put ops into wide templates
+
+* Style:
+“
+Explicitly Parallel Instruction Computer (EPIC)
+
+>Processor can
+initiate
+multiple
+operations
+per
+cycle
+
+>Low
+hardware
+complexity
+
+>Explicit
+parallelism
+
+>Single control flow
+
+## VLIW processors
+
+* **Operation:** is a unit of computation (add, load,
+branch = instruction in sequential ar.)
+
+* **Instruction:** set of operations that are intended to be
+issued simultaneously
+
+
+All operations that are supposed to begin at the
+same time are packaged into a single VLIW
+instruction
+
+Each operation slot is for a fixed function
+
+Constant operation latencies are specified
+
+Architecture requires guarantee of:
+
+* Parallelism within an instruction => no x-operation RAW check
+
+* No data use before data ready => no data interlocks
+
+
