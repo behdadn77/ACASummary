@@ -553,3 +553,218 @@ In essence, while BHT focuses on individual branch histories, GAg leverages a gl
 
 
 # PDF 7 - Instruction Level Parallelism
+Pipeline performance
+•
+Pipeline CPI =
+Ideal pipeline CPI
++
+Structural
+Stalls
++
+Data Hazard Stalls
++
+Control Stalls
+
+Ideal pipeline CPI
+: measure of the maximum
+performance attainable by the implementation
+
+* Structural hazards
+: HW cannot support this
+combination of instructions
+
+* Data hazards
+: Instruction depends on result of prior
+instruction still in the pipeline
+
+* Control hazards
+: Caused by delay between the
+fetching of instructions and decisions about changes
+in control flow (branches, jumps, exceptions)
+
+Hazards limit performance
+* Structural
+: need more HW resources
+* Data
+: need forwarding, compiler scheduling
+* Control
+: early evaluation & PC, delayed branch, predictors
+
+
+
+
+## Complex Pipelining
+
+Pipelining becomes complex when we want high performance in the
+presence of:
+Long latency or partially pipelined floating
+
+point units
+Multiple function and memory units
+Memory systems with variable access time
+Precise exception
+
+## Issues in Complex Pipeline Control
+
+* Structural conflicts at the execution stage if some FPU or memory
+unit is not pipelined and takes more than one cycle
+Structural conflicts at the write
+
+* back stage
+due to variable
+latencies of different functional units
+
+
+* Out of order write hazards due to variable latencies of different FUs
+
+### Complex In Order Pipeline
+**Delay writeback so all
+operations have same latency
+to WB stage**
+Instructions commit in order, simplifies
+precise exception implementation
+
+### The following checks need to be made before the Issue
+stage can dispatch an instruction
+>
+Is the required function unit available?
+>
+Is the input data available? RAW
+>
+Is it safe to write the destination? WAR/WAW
+>
+Is there a structural conflict at the WB stage?
+
+## Getting higher performance
+**In a pipelined machine, actual CPI is derived as:**
+
+```
+CPIpipe=CPIideal+Structural_stalls+Data_hazard_stalls+Control_stalls
+```
+
+Reduction of any right-hand term reduces
+CPI
+pipe
+(increase Instructions Per Clock–IPC)
+
+**Technique to increase
+CPI
+pipe
+could create further
+problems with hazards**
+
+To reach higher performance (for a given technology)
+–
+more parallelism must be extracted from the program
+
+
+
+Dependences must be detected and solved, and
+instructions must be ordered (
+scheduled
+)
+so as to
+achieve highest parallelism of execution compatible
+with available resources.
+
+
+
+**If two instructions are dependent, they cannot execute
+in parallel: they must be executed in order or only
+partially overlapped**
+
+
+
+
+## Name Dependences
+
+**when 2 instructions use the same
+register or memory location (called name), but there is no flow of
+data between the instructions associated with that name**
+
+> Antidependence
+: when j writes a register or memory location that
+instruction
+i
+reads. The original instructions ordering must be
+preserved to ensure that
+i
+reads the correct value.
+
+> Output Dependence
+:
+when
+i
+and j write the same register or
+memory location. The original instructions ordering must be
+preserved to ensure that the value finally written corresponds to j.
+
+
+* Name dependences are not true data dependences,
+since there is no value (no data flow) being transmitted
+between instructions.
+* If the name (register number or memory location) used
+in the instructions could be changed, the instructions do
+not conflict.
+* Dependences through memory locations are more
+difficult to detect (“
+memory disambiguation
+”
+problem),
+since two addresses may refer to the same location but
+can look different.
+* Register renaming can be more easily done.
+* Renaming can be done either statically by the compiler
+or dynamically by the hardware.
+
+
+
+## Data Dependences and Hazards
+
+A data/name dependence can potentially generate
+a data hazard (RAW, WAW, or WAR), but the actual
+hazard and the number of stalls to eliminate the
+hazards are a property of the pipeline.
+* RAW hazards correspond to true data dependences.
+
+* WAW hazards correspond to output dependences
+
+* WAR hazards correspond to
+antidependences
+
+
+
+**Dependences are a property of the program, while
+hazards are a property of the pipeline**
+
+## Control Dependences
+**determines the ordering of
+instructions**
+
+* Instructions execution in program order to ensure
+that an instruction that occurs before a branch is
+executed before the branch.
+* Detection of control hazards to ensure that an
+instruction (that is control dependent on a branch) is
+not executed until the branch direction is known.
+
+control
+dependence is not the critical property that must be
+preserved.
+
+## Program Properties
+Program Properties
+
+**Exception
+behavior**
+: Preserving exception
+behavior
+means that any changes in the ordering of instruction
+execution must not change how exceptions are
+raised in the program
+
+**Data flow:** Actual flow of data values among
+instructions that produces the correct results and
+consumes them
+
+
