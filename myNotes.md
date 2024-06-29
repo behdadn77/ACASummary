@@ -223,3 +223,333 @@ I understand. Here’s the table summarizing the three methods used to fill the 
 - **From Target of the Branch:** Best if the branch is frequently taken; may cause issues if not taken.
 - **From Fall-Through Path:** Useful when the branch is rarely taken; limited use if the branch is usually taken.
 - **From Before the Branch:** Simple to implement; constrained by instruction dependencies and ordering.
+
+# PDF 6 Dynamic Branch Prediction
+
+
+### Dynamic Branch Prediction
+Schemes: 
+Dynamic branch prediction is based on two
+interacting mechanisms:
+
+**Branch Outcome Predictor:**
+
+To predict the direction of a branch (i.e. taken or not
+taken).
+* Branch Target Predictor:
+To predict the branch target address in case of taken
+branch.
+
+These modules are used by the Instruction Fetch
+Unit to predict the next instruction to read in the I
+cache.
+
+If branch is not taken
+PC is incremented.
+
+If branch is taken
+BTP gives the target address
+
+### Branch Target Buffer
+Branch Target Buffer (Branch Target Predictor)
+is a
+cache storing the predicted branch target address
+for the next instruction after a branch
+•
+We access the BTB in the IF stage using the
+instruction address of the fetched instruction (a
+possible branch) to index the cache.
+
+The predicted target address is expressed as PC
+relative
+
+
+### Branch History Table
+Branch
+History
+Table
+(or
+Branch
+Prediction
+Buffer):
+
+Table
+containing
+1 bit for
+each
+entry
+that
+says
+whether
+the
+branch
+was
+recently
+taken
+or
+not
+.
+
+Table
+indexed
+by the
+lower
+portion
+of the
+address
+of the
+branch
+instruction
+.
+
+Prediction
+:
+hint
+that
+it
+is
+assumed
+to be
+correct
+, and
+fetching
+begins
+in the
+predicted
+direction
+.
+
+If
+the
+hint
+turns
+out to be
+wrong
+, the
+prediction
+bit
+is
+inverted
+and
+stored
+back. The pipeline
+is
+flushed
+and the
+correct
+sequence
+is
+executed
+.
+
+The
+table
+has
+no
+tags
+(
+every
+access
+is
+a hit) and the
+prediction
+bit
+could
+has
+been
+put
+there
+by
+another
+branch
+with the
+same
+low
+
+order
+address
+bits:
+but
+it
+does
+not
+matter
+.
+The
+prediction
+is
+just a
+hint
+
+
+
+#### A misprediction occurs when
+
+The
+prediction
+is
+incorrect
+for
+that
+branch
+, or
+ 
+The
+same
+index
+has
+been
+referenced
+by
+two
+different
+branches
+, and the
+previous
+history
+refers
+to the
+other
+branch
+ 
+To solve
+this
+problem
+it
+is
+enough
+to
+increase
+the
+number
+of
+rows
+in the BHT or to use a
+hashing
+function
+(
+such
+as
+in
+GShare
+)
+
+
+## 2 bit Branch History Table
+The prediction must miss twice before it is
+changed.
+
+**In a loop branch, at the last loop iteration, we
+do not need to change the prediction.**
+
+For each index in the table, the 2 bits are used
+to encode the four states of a finite state
+machine
+
+
+
+## n-bit Branch History Table
+•
+Generalization: n-bit saturating counter for each
+entry in the prediction buffer.
+
+The counter can take on values between 0 and 2^n-1
+
+When the counter is greater than or equal to one-half of
+its maximum value (2^n-1), the branch is predicted as
+taken.
+
+Otherwise, it is predicted as untaken.
+•
+As in the 2-bit scheme, the counter is incremented
+on a taken branch and decremented on an untaken
+branch.
+•
+Studies on n-bit predictors have shown that 2-bit
+predictors behave almost as well.
+
+## Correlating Branch Predictors
+
+BHT predictors use only the recent behavior of
+a single branch to predict the future behavior of
+that branch.
+
+Basic Idea: the behavior of recent branches are
+correlated, that is the recent behavior of other
+branches rather than just the current branch
+(we are trying to predict) can influence the
+prediction of the current branch.
+
+
+Branch predictors that use the behavior of other
+branches to make a prediction are called
+Correlating Predictors
+or
+2-level Predictors.
+
+Example a (1,1) Correlating Predictors means a
+1-bit predictor with 1-bit of correlation: the
+behavior of last branch is used to choose
+among a pair of 1-bit branch predictors.
+
+
+
+***I skipped a lot of parts that are maybe important***
+
+
+## GA Predictor
+
+The Branch History Table (BHT) and Global History Register with Global Prediction (GAg) are both techniques used for dynamic branch prediction in computer architecture, but they operate differently and have distinct characteristics. Here’s a comparison between the two:
+
+### Branch History Table (BHT)
+
+**Description:**
+- A BHT is a simple table used for branch prediction where each entry in the table corresponds to a branch instruction. It records the outcomes (taken or not taken) of recent executions of that branch.
+
+**Operation:**
+- Each entry typically consists of a counter or a set of bits that are updated based on the actual outcome of the branch instruction. For example, a 2-bit counter can represent four states to indicate how likely a branch is to be taken.
+
+**Advantages:**
+- **Simplicity:** Easy to implement and understand.
+- **Local Prediction:** Works well for branches that have a consistent behavior pattern.
+
+**Disadvantages:**
+- **Limited Context:** Only considers the history of individual branches, which may not capture complex patterns or correlations with other branches.
+- **Storage Requirements:** Requires a table entry for each branch, which can be large for programs with many branches.
+
+### Global History Register with Global Prediction (GAg)
+
+**Description:**
+- GAg uses a global history register (GHR) that records the outcomes of the most recent branches (usually as a shift register) and a global pattern history table (PHT) indexed by this global history.
+
+**Operation:**
+- The GHR is a single register that captures the history of the last N branches (regardless of which branch instruction they were).
+- The PHT is indexed using the GHR, and it stores the prediction for the combination of recent branch outcomes.
+- This method leverages the global branch history to make predictions, capturing more complex patterns across different branches.
+
+**Advantages:**
+- **Global Context:** Takes into account the outcomes of multiple branches, potentially improving prediction accuracy for branches that are correlated.
+- **Captures Complex Patterns:** More effective for programs where branch outcomes are interdependent.
+
+**Disadvantages:**
+- **Complexity:** More complex to implement than a simple BHT.
+- **Longer History Management:** Managing and updating the global history register can be more challenging.
+- **Potential for Conflicts:** Multiple branches may map to the same entry in the PHT, causing aliasing and reducing prediction accuracy.
+
+### Summary Table
+
+| **Aspect**                   | **Branch History Table (BHT)**                                      | **Global History Register with Global Prediction (GAg)**               |
+|------------------------------|---------------------------------------------------------------------|------------------------------------------------------------------------|
+| **History Type**             | Local to each branch                                                | Global across all branches                                             |
+| **Storage**                  | Table indexed by branch address                                      | Global History Register (GHR) and Pattern History Table (PHT)          |
+| **Prediction Basis**         | Recent outcomes of individual branches                              | Combined recent outcomes of multiple branches                          |
+| **Complexity**               | Simple                                                              | More complex                                                           |
+| **Accuracy**                 | Good for independent branches                                       | Higher for interdependent branches                                     |
+| **Implementation**           | Straightforward                                                     | Requires management of global history and handling potential aliasing  |
+| **Advantages**               | Simple, easy to implement, effective for consistent branch patterns | Captures global patterns, potentially more accurate for correlated branches |
+| **Disadvantages**            | Limited context, large storage for many branches                    | Complex, potential aliasing issues, more challenging to implement       |
+
+In essence, while BHT focuses on individual branch histories, GAg leverages a global approach to capture broader execution patterns, which can improve prediction accuracy in scenarios with interdependent branches.
+
+
+# PDF 7 - Instruction Level Parallelism
