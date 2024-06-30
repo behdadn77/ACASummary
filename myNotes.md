@@ -1286,6 +1286,19 @@ preceding instructions (WAR)
 
 Result held in functional unit until register free
 
+> Enables
+out-of-order
+execution
+and
+completion
+(
+commit
+)
+
+>Out-of order execution introduces possibility of
+WAR, WAW data hazards.
+
+
 ### Scoreboard centralizes hazard management
 * Every instruction goes through the scoreboard
 * Scoreboard determines when the instruction can
@@ -1319,6 +1332,8 @@ The scoreboard-based pipeline has stages that specifically address the dynamic s
 | **Read Operands** | The instruction waits until its source operands are available (i.e., no RAW (Read After Write) hazards). Once the operands are available, they are read and the instruction is ready to execute.                                   |
 | **Execute**       | The instruction is executed by the functional unit. The duration of this stage depends on the type of operation (e.g., addition, multiplication).                                              |
 | **Write Result**  | The instruction waits until there are no WAR (Write After Read) hazards. Once safe, the result is written back to the register file, and the functional unit is marked as available for new instructions.                              |
+
+***more detailed explanation in PDF 10***
 
 ### Comparison Table
 
@@ -1356,3 +1371,237 @@ Consider a sequence of instructions:
 - **New Scoreboarding Pipeline:** Uses dynamic scheduling to handle hazards and dependencies, allowing for better parallelism and efficient utilization of functional units.
 
 The scoreboard approach improves performance by reducing idle cycles and better handling data hazards through dynamic scheduling and resource management.
+
+
+# PDF 10 - Dynamic Scheduling: Scoreboard
+
+data
+dependences
+that
+cannot
+be
+hidden
+with
+bypassing
+or
+forwarding
+cause hardware
+stalls
+of the
+pipeline so we
+allow
+instructions
+behind
+a
+stall
+to
+proceed
+
+HW
+rearranges
+the
+instruction
+execution
+to reduce
+stalls
+
+
+## Four Stages of Scoreboard Control
+Sure! Here’s a short summary of the four stages of scoreboard control:
+
+1. **Issue:**
+   - Decode instructions and check for structural hazards.
+   - Issue instructions in program order if the functional unit (FU) is free and no Write After Write (WAW) hazards exist.
+   - Stall if there are structural or WAW hazards until they are cleared.
+
+2. **Read Operands:**
+   - Wait until no data hazards (Read After Write, RAW).
+   - Read operands from registers once they are available.
+   - Instructions can be executed out of order, but no data forwarding occurs.
+
+3. **Execution:**
+   - The functional unit begins execution upon receiving operands.
+   - Notify the scoreboard when the result is ready.
+   - Functional units have specific latency and initiation intervals.
+
+4. **Write Result:**
+   - Check for Write After Read (WAR) hazards after execution.
+   - If no WAR hazard, write results to the register.
+   - Stall if there is a WAR hazard until it is cleared.
+
+>**Assume we can overlap issue and write**
+
+
+## Scoreboard Implications
+* **Solution for WAW:**
+ Detect hazard and stall issue of new instruction
+until the other instruction completes
+
+* No register renaming
+
+* Need to have multiple instructions in execution
+phase
+&rarr; Multiple execution units or pipelined
+execution units
+
+* Scoreboard keeps track of dependences and
+state of operations
+
+
+## scoreboard structure
+### Instruction status
+
+### Functional Unit status
+- **Busy:** Tracks whether an FU is in use.
+- **Op:** Specifies the operation being performed by the FU.
+- **Fi:** Destination register for the operation’s result.
+- **Fj, Fk:** Source registers for the operands of the operation.
+- **Qj, Qk:** Indicate which FUs are currently producing the values for Fj and Fk.
+- **Rj, Rk:** Flags that show if the values in Fj and Fk are ready for use.
+
+These elements collectively help in managing and scheduling the execution of instructions, ensuring that data hazards are resolved and instructions are executed in the correct order.
+
+
+
+### Register result status
+Indicates
+which
+functional
+unit
+will
+write
+each
+register
+.
+Blank
+if
+no
+pending
+instructions
+will
+write
+that
+register.
+
+
+
+# PDF 11 Tomasulo Algorithm
+
+## Tomasulo Algorithm Basics
+
+* The control
+logic
+and the buffers are
+distributed
+with
+FUs
+(vs.
+centralized
+in
+scoreboard
+)
+
+* Operand
+buffers are
+called
+Reservation
+Stations
+
+* Each
+instruction
+is
+an entry of a
+reservation
+station
+
+
+* Its
+operands
+are
+replaced
+by
+values
+or
+pointers
+(
+Register
+Renaming
+)
+
+
+* Register
+Renaming
+allows
+to:
+   - Avoid
+WAR and WAW
+hazards
+
+   - Reservation
+stations
+are more
+than
+registers
+(so
+can do
+better
+optimizations
+than
+a
+compiler
+).
+* Results
+are
+dispatched
+to
+other
+FUs
+through
+a
+Common Data Bus (CDB)
+* Load
+/
+Stores
+treated
+as
+FUs
+
+
+
+##  Reservation Station Components
+
+- **Tag**: Identifies the specific RS.
+- **OP**: The operation to perform.
+- **Vj, Vk**: Values of the source operands.
+- **Qj, Qk**: Pointers to the RS that will produce the values of Vj and Vk. If zero, the operand value is already in Vj or Vk.
+- **Busy**: Indicates if the RS is currently in use.
+
+Note: For each operand, either the value (V-field) or the pointer (Q-field) is valid, not both.
+
+
+
+## the stages of the Tomasulo algorithm:
+
+
+#### 1. Issue
+- **Instruction Fetching**: An instruction \( I \) is fetched from the instruction queue.
+- **FP Operation Check**: If \( I \) is a floating-point (FP) operation, check for available reservation stations (RS) to avoid structural hazards.
+- **Register Renaming**: Perform register renaming to resolve Write After Read (WAR) hazards.
+  - If \( I \) writes to register \( Rx \) and instruction \( K \), which has already been issued, reads \( Rx \), \( K \) either already knows the value of \( Rx \) or knows which instruction will write to it. Hence, the register file (RF) can be linked to \( I \).
+- **Write After Write (WAW) Resolution**: With in-order issue, the RF is linked to \( I \), ensuring proper sequencing of writes.
+
+#### 2. Execution
+- **Operand Availability**: Execute the instruction when both operands are ready.
+- **Operand Waiting**: If operands are not ready, monitor the common data bus (CDB) for the results.
+- **RAW Hazard Avoidance**: By delaying execution until operands are available, Read After Write (RAW) hazards are avoided. Multiple instructions may become ready simultaneously for the same functional unit (FU).
+- **Load and Store Instructions**: These are handled in a two-step process:
+  - **Step 1**: Compute the effective address and place it in the load or store buffer.
+  - **Loads**: Execute as soon as the memory unit is available.
+  - **Stores**: Wait for the value to be stored before sending it to the memory unit.
+
+#### 3. Write-Back (Not detailed in the provided text but commonly included)
+- **Result Broadcasting**: The result of the executed instruction is broadcasted on the CDB to all waiting reservation stations and the RF.
+- **Updating Buffers**: Update the load/store buffers and mark the RS as available for new instructions.
+- **Instruction Completion**: Mark the instruction as completed and remove it from the instruction queue.
+
+These stages ensure that the Tomasulo algorithm effectively handles out-of-order execution while resolving various data hazards dynamically.
