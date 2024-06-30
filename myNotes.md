@@ -1605,3 +1605,33 @@ Note: For each operand, either the value (V-field) or the pointer (Q-field) is v
 - **Instruction Completion**: Mark the instruction as completed and remove it from the instruction queue.
 
 These stages ensure that the Tomasulo algorithm effectively handles out-of-order execution while resolving various data hazards dynamically.
+
+</br>
+
+# side-by-side comparison of the Scoreboard and Tomasulo Algorithm:
+
+| **Aspect**            | **Scoreboard**                                                                                           | **Tomasulo Algorithm**                                                                                   |
+|-----------------------|----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| **Control Logic**     | Centralized control logic where a central scoreboard manages the execution of instructions. It tracks the status of functional units and manages instruction issue, execution, and completion. | Distributed control logic with Function Units (FUs) having local control for each FU. Each FU has its reservation station to handle instruction issue, execution, and result broadcasting. |
+| **Buffers**           | Centralized reservation stations and a common data bus for communication between functional units. Instructions wait in reservation stations until operands are available. | FU buffers called "reservation stations" with pending operands. Each reservation station holds the instruction, its operands, and status information. This decentralized approach reduces contention and allows for parallel execution. |
+| **Register Handling** | Instructions reference registers directly, potentially leading to hazards like Write-After-Read (WAR) and Write-After-Write (WAW). | Registers in instructions are replaced by values or pointers to reservation stations (RS). This register renaming technique eliminates register dependencies and hazards, enabling out-of-order execution. |
+| **Register Renaming** | Not supported in the traditional sense, which can lead to stalls and dependencies on register availability. | Supports register renaming to avoid WAR and WAW hazards. By assigning physical registers dynamically to instructions, the algorithm prevents data hazards and improves instruction throughput. |
+| **Optimizations**     | Limited optimizations due to centralized control and buffers. Dependencies on the scoreboard can limit parallelism and optimization opportunities. | More reservation stations than physical registers, enabling out-of-order execution and dynamic scheduling. This allows for advanced optimizations that compilers cannot achieve, leading to improved performance. |
+| **Data Flow**         | Results pass through registers, potentially causing bottlenecks and dependencies. Instructions must wait for data to propagate through the register file. | Results pass from reservation stations to functional units over a Common Data Bus that broadcasts results to all FUs. This broadcast mechanism reduces data dependencies and allows for parallel execution of independent instructions. |
+| **Load/Store Units**  | Treated separately, leading to potential stalls and dependencies between load/store and other instructions. Load/store instructions may wait for data to be fetched from memory. | Load and Stores treated as FUs with reservation stations, enabling them to participate in the out-of-order execution. This integration improves memory access efficiency and reduces stalls related to data dependencies. |
+| **Instruction Flow**  | Integer instructions wait for branches to resolve before execution, potentially causing stalls and reducing performance. | Integer instructions can proceed past branches, allowing for speculative execution and improved performance. This feature enables the algorithm to exploit instruction-level parallelism and enhance overall processor efficiency. |
+
+This detailed comparison provides an in-depth analysis of the differences between the Scoreboard and Tomasulo Algorithm in terms of control logic, buffers, register handling, optimizations, data flow, load/store units, and instruction flow.
+
+
+
+| Feature                        | Tomasulo (IBM)                                   | Scoreboard (CDC)                              |
+|--------------------------------|--------------------------------------------------|-----------------------------------------------|
+| Issue Window Size              | 14                                               | 5                                             |
+| Structural Hazard Handling     | No issues due to reservation stations (RS)       | No issue on structural hazards               |
+| Hazard Resolution              | WAR and WAW avoided with renaming                | Stall for WAW and WAR hazards                |
+| Result Broadcast               | Broadcast results from functional units (FUs)    | Results written back on registers            |
+| Control Mechanism              | Control distributed on reservation stations (RS) | Control centralized through the Scoreboard   |
+| Loop Unrolling Capability      | Allows loop unrolling in hardware               | Not specified                                 |
+
+This table highlights the key differences between the Tomasulo algorithm (as implemented by IBM) and the Scoreboard method (used by CDC), focusing on their respective characteristics related to issue window size, hazard handling, result handling, control mechanism, and additional capabilities like loop unrolling.
