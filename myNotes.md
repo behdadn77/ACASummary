@@ -867,3 +867,492 @@ Architecture requires guarantee of:
 * No data use before data ready => no data interlocks
 
 
+
+## VLIW Compiler Responsibilities
+**The compiler:**
+
+Schedules to maximize parallel execution
+
+Exploit ILP and LLP (Loop Level Parallelism)
+
+It is necessary to map the instructions over the machine
+functional units
+
+* This mapping must account for time constraints and
+dependencies among the tasks
+
+Guarantees intra
+* instruction parallelism
+
+Schedules to avoid data hazards (no interlocks)
+
+* Typically separates operations with explicit NOPs
+
+The goal is to minimize the total execution time for
+the program
+
+The compiler:
+* Schedules to maximize parallel execution
+> Exploit ILP
+and LLP (Loop Level Parallelism)
+> It is necessary to map the instructions over the machine
+functional units
+> This mapping must account for time constraints and
+dependencies among the tasks
+* Guarantees intra-instruction parallelism
+* Schedules to avoid data hazards (no interlocks)
+> Typically separates operations with explicit NOPs
+* The goal is to minimize the total execution time for
+the program
+
+## Static Scheduling
+ Try to keep pipeline full (in single issue
+pipelines) or utilize all FUs in each cycle (in
+VLIW) as much as possible to reach better ILP
+and therefore higher parallel speedups.
+
+* Compilers can use sophisticated algorithms for code
+scheduling to exploit ILP (Instruction Level Parallelism).
+
+* The amount of parallelism available within a basic block is
+quite small.
+
+* Data dependence can further limit the amount of ILP we can
+exploit within a basic block to much less than the average
+basic block size.
+
+* To obtain substantial performance enhancements, we must
+exploit ILP across multiple basic blocks (i.e. across
+branches).
+
+**dependences are avoided by code
+reordering**
+
+### Basic Block Definition
+ a
+sequence of straight
+non-branch instructions
+
+
+
+Here's the information organized into a table:
+
+| **VLIW: Pros and Cons**                            |                                             |
+|----------------------------------------------------|---------------------------------------------|
+| **Pros**                                           | **Cons**                                    |
+| - Simple HW                                        | - Huge number of registers to keep active the FUs |
+|     - Easy to extend the #FUs                      |     - Needed to store operands and results  |
+| - Good compilers can effectively detect parallelism | - Large data transport capacity between: * FUs and register files  * Register files and Memory  |
+|                                                    | - High bandwidth between i-cache and fetch unit |
+|                                                    | - Large code size                           |
+|                                                    |     - Knowing branch probabilities          |
+|                                                    | - Profiling requires a significant extra step in build process |
+|                                                    | - Scheduling for statically unpredictable branches |
+
+
+### Static Scheduling: methods
+> Simple code motion
+
+> Loop unrolling & loop peeling
+
+> Software pipeline
+
+> Global code scheduling (across basic block)
+>* Trace scheduling
+>* Superblock scheduling
+>* Hyperblock
+scheduling
+>* Speculative Trace scheduling
+
+
+## Trace scheduling
+focuses
+on
+traces
+
+>A trace
+is
+a
+loop-free
+sequence
+of
+basic
+blocks
+embedded
+in the control flow
+graph
+(Fisher)
+
+>It
+is
+an
+execution
+path
+which
+can be
+taken
+for
+some set of
+inputs
+
+>The chances
+that
+a trace
+is
+actually
+executed
+depends
+on the input set
+that
+allows
+its
+execution
+
+
+Some
+traces
+are
+executed
+much
+more
+frequently
+than
+others
+
+
+* Pick string of basic blocks, a
+trace, that represents most
+frequent branch path
+
+* Use
+profiling feedback
+or
+compiler heuristics to find
+common branch paths
+
+* Schedule whole “trace” at
+once
+
+* Add
+fixup
+code to cope with
+branches jumping out of trace
+
+
+
+
+#### Trace scheduling and loops
+* Trace
+scheduling
+cannot
+proceed
+beyond
+a
+loop
+barrier
+* Techniques
+used
+to
+overcome
+this
+limitation
+are
+based
+on
+loop
+unrolling
+#### Negative effects on unrolling
+* Unrolling
+produces
+much
+extra code
+* It
+also
+looses
+performance,
+because
+of the
+costs
+of
+starting
+and
+closing
+the
+iterations
+#### Traces scheduling schedules traces in order of decreasing probability of being executed
+* So,
+most
+frequently
+executed
+traces
+get
+better
+schedules
+* Traces
+are
+scheduled
+as
+if
+they
+were
+basic
+blocks
+(no
+special
+considerations
+for
+branches)
+
+</br>
+
+> **Trace**:
+> a sequence of instructions
+which may Include branches but
+not including loops
+
+# PDF 9
+
+## Code Motion in Trace Scheduling
+#### In addition to need of compensation codes there are restrictions on movement of a code in a trace:
+* The dataflow of the program must not change
+* The exception behavior must be preserved
+#### Dataflow can be guaranteed to be correct by maintaining two dependencies:
+* Data dependency
+* Control dependency
+
+#### There are two solutions to eliminate control dependency:
+
+* By use of predicate instructions (
+Hyperblock
+scheduling)
+and removing the branch.
+
+* By use of speculative instructions (Speculative Scheduling)
+and speculatively move an instruction before the branch.
+
+
+</br>
+
+| **Technique**                        | **Predicate Instructions (Hyperblock Scheduling)**                                | **Speculative Instructions (Speculative Scheduling)**                              |
+|--------------------------------------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| **Description**                      | Uses predicate registers to conditionally execute instructions, reducing branches | Executes instructions before branch outcome is known based on predictions          |
+| **Mechanism**                        | Combines multiple basic blocks into a hyperblock, guarded by predicates           | Moves instructions before branches, speculating they will be needed                |
+| **Branch Handling**                  | Minimizes branches by conditional execution within hyperblocks                   | Reduces idle cycles by pre-executing instructions based on branch prediction        |
+| **Execution Control**                | Instructions are executed based on the evaluation of predicate conditions         | Instructions are executed speculatively, assuming the prediction is correct        |
+| **Impact on Performance**            | Enhances parallelism by reducing branch penalties                                | Improves utilization of execution units by overlapping instruction execution with branch decision |
+| **Compiler/Processor Role**          | Compiler organizes instructions into hyperblocks with predicates                  | Compiler/processor schedules instructions speculatively                            |
+| **Examples of Use**                  | If-else statements are converted into predicated instructions within a hyperblock | Instructions after a branch are moved before the branch for speculative execution   |
+| **Benefits**                         | Efficient use of functional units, less branch disruption                        | Better performance by keeping execution units busy, minimizing idle time           |
+| **Drawbacks**                        | Increased complexity in scheduling and handling predicates                       | Risk of executing unnecessary instructions if the speculation is incorrect          |
+
+This table highlights the key aspects and benefits of using predicate instructions with hyperblock scheduling and speculative instructions with speculative scheduling in VLIW architectures.
+
+Speculation and prediction are closely related concepts, but they refer to different aspects of handling uncertain outcomes in computing, particularly in processor architecture.
+
+### Prediction
+- **Definition:** Prediction is the process of making an educated guess about the outcome of a future event, such as the direction of a branch in a program (e.g., whether an `if` condition will be true or false).
+- **Purpose:** The main goal of prediction is to anticipate the direction a branch will take so that the processor can prepare to execute the appropriate instructions.
+- **Example:** Branch prediction algorithms in CPUs predict whether a branch will be taken or not taken based on historical data and patterns observed in previous executions.
+
+### Speculation
+- **Definition:** Speculation is the process of executing instructions based on the prediction made. It involves carrying out the predicted path before the actual outcome is known.
+- **Purpose:** The main goal of speculation is to keep the processor's execution units busy and improve performance by executing instructions in advance of the actual decision point.
+- **Example:** Once a branch predictor guesses that a branch will be taken, speculative execution will proceed to execute the instructions on that predicted path.
+
+### Relationship and Differences
+- **Prediction vs. Speculation:** Prediction is about making a guess, while speculation is about acting on that guess. Prediction feeds into speculation; without prediction, there is no basis for speculation.
+- **Outcome Handling:**
+  - **Prediction:** The outcome of the prediction is a guess (e.g., "Branch will be taken").
+  - **Speculation:** The result of speculation is the execution of instructions based on that guess. If the prediction is correct, the speculative execution is beneficial. If incorrect, the speculatively executed instructions are discarded, and the correct path is executed.
+- **Risk and Reward:**
+  - **Prediction:** Has no inherent risk or direct reward by itself. It simply provides a forecast.
+  - **Speculation:** Involves risk because it acts on the prediction. The reward is improved performance if the prediction is correct, and the risk is wasted cycles and potential rollback if the prediction is wrong.
+
+### Summary with Example
+Consider a branch in a program:
+```c
+if (condition) {
+    // block A
+} else {
+    // block B
+}
+```
+1. **Prediction:** The branch predictor guesses whether `condition` will be true or false (e.g., predicts `condition` is true, so block A will execute).
+2. **Speculation:** Based on this prediction, speculative execution begins executing the instructions in block A before knowing if `condition` is actually true.
+
+If the prediction is correct:
+- The speculative execution of block A is validated, leading to a performance gain because the processor did not wait to determine the condition.
+
+If the prediction is incorrect:
+- The speculative execution of block A is discarded, and the processor must then execute block B, which incurs a performance penalty due to the misprediction and wasted cycles.
+
+In essence, prediction provides the guess, and speculation takes action based on that guess.
+
+
+
+## Predicated Execution
+Problem:
+Mispredicted
+branches limit ILP
+Solution: Eliminate hard to predict branches with predicated execution
+
+* Almost all IA-64 instructions can be executed conditionally under predicate
+* Instruction becomes NOP if predicate register false
+
+## Rotating Register Files
+
+### Rotating Register Files (RRFs)
+
+**Rotating Register Files (RRFs)** are a specialized type of register file architecture used primarily in very long instruction word (VLIW) and explicitly parallel instruction computing (EPIC) processors. They are designed to support software-pipelined loops efficiently by providing a mechanism for registers to be reused across iterations without explicit renaming or handling by the compiler or hardware.
+
+#### Key Concepts
+
+1. **Registers and Loop Iterations:**
+   - In software-pipelined loops, different iterations of a loop can be executing simultaneously at different stages. Each iteration requires its own set of registers to hold temporary variables.
+   - RRFs simplify this by allowing a fixed set of physical registers to be "rotated" or reused across iterations.
+
+2. **Rotation Mechanism:**
+   - The register file is logically divided into several "windows" or "frames." Each window corresponds to the register set used by a particular loop iteration.
+   - As a new iteration begins, the register file rotates so that the same physical registers are mapped to the new iteration's logical registers.
+
+3. **Benefits of RRFs:**
+   - **Efficient Register Usage:** By rotating the register set, RRFs avoid the need for an excessive number of physical registers, which would be required if each iteration had its own distinct set of registers.
+   - **Simplified Register Management:** Compilers and hardware can handle software-pipelined loops more efficiently without complex register renaming mechanisms.
+   - **Reduced Overhead:** The rotation mechanism reduces the overhead of saving and restoring registers across iterations, leading to improved performance.
+
+#### Example Scenario
+
+Consider a loop that is being software-pipelined, with three stages of execution (e.g., fetch, execute, write-back):
+
+```c
+for (int i = 0; i < N; i++) {
+    // Stage 1: Load data
+    // Stage 2: Perform computation
+    // Stage 3: Store results
+}
+```
+
+Using RRFs, the register file might be divided into three windows, one for each stage of the loop:
+
+1. **Iteration 1:**
+   - Stage 1 uses registers R0-R3.
+   - Stage 2 uses registers R4-R7.
+   - Stage 3 uses registers R8-R11.
+
+2. **Iteration 2 (after rotation):**
+   - Stage 1 now uses registers R4-R7.
+   - Stage 2 uses registers R8-R11.
+   - Stage 3 uses registers R0-R3.
+
+3. **Iteration 3 (after another rotation):**
+   - Stage 1 now uses registers R8-R11.
+   - Stage 2 uses registers R0-R3.
+   - Stage 3 uses registers R4-R7.
+
+#### Implementation in VLIW/EPIC Processors
+
+VLIW and EPIC architectures rely on compilers to detect and exploit instruction-level parallelism. RRFs are particularly useful in these architectures because they help manage the complexity of parallel execution across multiple loop iterations. By automating the rotation of register sets, RRFs allow the compiler to focus on optimizing instruction scheduling and parallelism without worrying about register allocation for each iteration.
+
+### Summary
+
+**Rotating Register Files (RRFs)**:
+- Provide an efficient way to reuse registers across loop iterations in software-pipelined loops.
+- Simplify register management by using a rotation mechanism.
+- Enhance performance in VLIW and EPIC architectures by reducing the overhead of register saving and restoring.
+
+This architectural feature is crucial for achieving high performance in processors that rely heavily on parallel execution and efficient loop handling.
+
+## Dynamic scheduling
+
+A Data Structure for Correct Issues
+Keeps track of the status of Functional Units
+
+
+## CDC6600 Scoreboard
+
+Instructions dispatched in-order to functional units
+provided no structural hazard or WAW
+* Stall on structural hazard, no functional units available
+
+* Only one pending write to any register
+
+Instructions wait for input operands (RAW hazards)
+before execution
+
+Can execute out-of-order
+
+Instructions wait for output register to be read by
+preceding instructions (WAR)
+
+Result held in functional unit until register free
+
+### Scoreboard centralizes hazard management
+* Every instruction goes through the scoreboard
+* Scoreboard determines when the instruction can
+read its operands and begin execution
+* Monitors changes in hardware and decides when a
+stalled instruction can execute
+* Controls when instructions can write results
+
+</br>
+Certainly! Let's compare the new scoreboard-based pipeline to a traditional (or old) pipeline. We'll outline the stages and characteristics of each, and highlight the differences in their approach to handling hazards and scheduling.
+
+### Old Pipeline Stages
+
+A traditional pipeline typically follows a simple, linear sequence of stages, such as the classic RISC (Reduced Instruction Set Computing) pipeline.
+
+| **Stage**    | **Description**                                                                                         |
+|--------------|---------------------------------------------------------------------------------------------------------|
+| **Fetch (IF)**   | The instruction is fetched from memory.                                                                |
+| **Decode (ID)**  | The instruction is decoded to determine the operation and the operands required.                       |
+| **Execute (EX)** | The instruction is executed by the appropriate functional unit.                                        |
+| **Memory (MEM)** | If the instruction involves memory access, the address is calculated, and the data is read or written. |
+| **Write Back (WB)**| The result of the execution or memory operation is written back to the register file.                    |
+
+### New Pipeline Stages in Scoreboarding
+
+The scoreboard-based pipeline has stages that specifically address the dynamic scheduling and hazard management:
+
+| **Stage**         | **Description**                                                                                                 |
+|-------------------|-----------------------------------------------------------------------------------------------------------------|
+| **Issue**         | The instruction is issued from the instruction queue if the required functional unit (FU) is available and no WAW (Write After Write) hazards exist. The instruction is then sent to the designated FU.                                |
+| **Read Operands** | The instruction waits until its source operands are available (i.e., no RAW (Read After Write) hazards). Once the operands are available, they are read and the instruction is ready to execute.                                   |
+| **Execute**       | The instruction is executed by the functional unit. The duration of this stage depends on the type of operation (e.g., addition, multiplication).                                              |
+| **Write Result**  | The instruction waits until there are no WAR (Write After Read) hazards. Once safe, the result is written back to the register file, and the functional unit is marked as available for new instructions.                              |
+
+### Comparison Table
+
+| **Aspect**                | **Old Pipeline**                                                    | **New Scoreboarding Pipeline**                                       |
+|---------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------|
+| **Stages**                | Fetch, Decode, Execute, Memory, Write Back                          | Issue, Read Operands, Execute, Write Result                          |
+| **Hazard Management**     | Static scheduling, stalls introduced by control unit                | Dynamic scheduling, managed by scoreboard                             |
+| **Structural Hazards**    | Handled by stalling or pipelining functional units                  | Handled dynamically by scoreboard                                     |
+| **Data Hazards**          | Handled by stalling, forwarding, and pipeline interlocks            | Handled by checking RAW, WAR, and WAW hazards dynamically             |
+| **Control Hazards**       | Branch prediction, pipeline flushing                               | Not specifically addressed by scoreboard (depends on other mechanisms) |
+| **Execution Parallelism** | Limited by static scheduling and stalls                             | Enhanced by dynamic scheduling, allows for better FU utilization      |
+| **Flexibility**           | Less flexible, depends on fixed pipeline stages                     | More flexible, instructions can progress independently based on resource availability and hazard resolution |
+
+### Example Scenario
+
+Consider a sequence of instructions:
+
+1. **Old Pipeline:**
+   - Instruction fetch (IF) for each instruction occurs in a fixed sequence.
+   - Decode (ID) follows, potentially stalling if dependencies are detected.
+   - Execution (EX) occurs when operands are available, possibly stalling for RAW hazards.
+   - Memory access (MEM) and Write Back (WB) stages follow in sequence.
+   - If hazards occur, pipeline stalls are introduced, leading to idle cycles.
+
+2. **New Scoreboarding Pipeline:**
+   - Instructions are issued dynamically if the required FU is available (Issue stage).
+   - Instructions wait for operands to be available (Read Operands stage) without stalling other instructions.
+   - Execution (Execute stage) occurs when the FU and operands are ready.
+   - Results are written back when there are no WAR hazards (Write Result stage).
+   - Instructions can progress independently, and FUs are kept busy without unnecessary stalls.
+
+### Summary
+
+- **Old Pipeline:** Follows a fixed sequence with potential stalls at each stage to handle hazards, leading to less efficient utilization of resources.
+- **New Scoreboarding Pipeline:** Uses dynamic scheduling to handle hazards and dependencies, allowing for better parallelism and efficient utilization of functional units.
+
+The scoreboard approach improves performance by reducing idle cycles and better handling data hazards through dynamic scheduling and resource management.
