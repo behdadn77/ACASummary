@@ -2112,3 +2112,989 @@ For instance, the Itanium 2, despite its wide issue capabilities, operates at a 
 
 This table summarizes Flynn's taxonomy, distinguishing each category by its operational characteristics, mode of instruction/data processing, and examples of real-world implementations or theoretical constructs.
 
+
+# PDF 15 - Multiprocessors 
+
+Many of the early multiprocessors were SIMD
+
+MIMD has emerged as architecture of choice
+for general-purpose multiprocessors
+
+## SIMD Architecture:
+Central controller broadcasts instructions to
+multiple processing elements (PEs)
+
+- Only requires one controller for whole array
+- Only requires storage for one copy of program
+- All computations fully synchronized
+
+### SIMD model
+
+
+- **Synchronized units: single Program Counter**
+- Each unit has its own addressing registers, allowing different data addresses.
+- **Motivations for SIMD:**
+  - Cost efficiency due to shared control unit across all execution units.
+  - Only one instance of code execution required.
+- **Real-life implementation:**
+  - SIMD architectures often mix SISD (Single Instruction, Single Data) and SIMD instructions.
+  - Host computers execute sequential operations alongside SIMD instructions.
+  - Execution units within SIMD have their own memory and registers, utilizing an interconnection network for data exchange.
+## Alternative Model: Vector Processing
+
+Vector processors have high level operations
+that work on linear arrays of numbers: "vectors"
+
+### Styles of Vector Architectures
+
+- **Vector Processor Components:**
+  - A vector processor combines a pipelined scalar unit (which may be out-of-order or VLIW) with a vector unit.
+
+- **Memory-memory vector processors:**
+  - All vector operations involve memory-to-memory interactions.
+
+- **Vector-register processors:**
+  - Vector operations occur between vector registers, except for load and store operations.
+  - This architecture is akin to load-store architectures but optimized for vectors.
+  - Implemented in vector machines since the late 1980s, including Cray, Convex, Fujitsu, Hitachi, NEC.
+
+## Vector Arithmetic Execution
+
+Vector arithmetic execution utilizes a deep pipeline to achieve fast clock speeds. Here's a clearer explanation of the key points:
+
+- **Deep Pipeline**: Vector processors employ a deep pipeline structure, allowing them to operate at high clock frequencies. A deep pipeline means that the execution of instructions is divided into several stages, with each stage handling a specific part of the instruction execution process.
+
+- **Simplified Control**: The independence of elements within a vector simplifies pipeline control. In a vector operation, each element of the vector operates independently of others. This independence means there are no dependencies or hazards between elements that would stall the pipeline. Therefore, the control of the deep pipeline is streamlined because there's no need for complex hazard detection and handling mechanisms.
+
+In essence, vector processors leverage a deep pipeline and the independence of vector elements to achieve high performance by executing operations swiftly and efficiently.
+
+## Vector Applications Beyond Scientific Computing
+
+- **Multimedia Processing**: Includes compression (JPEG, MPEG), graphics rendering, audio synthesis, and image processing.
+- **Standard Benchmark Kernels**: Such as Matrix Multiply, FFT (Fast Fourier Transform), Convolution, and Sort algorithms.
+- **Compression Techniques**: Both lossy (JPEG, MPEG for video and audio) and lossless methods (Zero removal, Run-Length Encoding (RLE), Lempel-Ziv-Welch (LZW)).
+- **Cryptography**: Used in RSA encryption, DES/IDEA encryption algorithms, and hashing algorithms like SHA and MD5.
+- **Speech and Handwriting Recognition**: Processing and analyzing large datasets of audio and handwritten inputs.
+- **Operating Systems/Networking**: Utilized for operations like memory copying (memcpy), memory setting (memset), parity calculation, and checksum generation.
+- **Databases**: Employed for tasks such as hashing and joining datasets, data mining, and serving image and video data.
+- **Language Runtime Support**: Providing standard library functions and managing memory through garbage collection.
+- **Performance Benchmarking**: Used in benchmarks like SPECint95 to measure and compare computational performance across different platforms.
+
+</br>
+
+>MIMDs are flexible. 
+they can function as
+single-user machines for high performances
+on one application, as multiprogrammed
+multiprocessors running many tasks
+simultaneously, or as some combination of
+such functions;
+>
+> Can be built starting from standard CPUs
+(such is the present case nearly for all
+multiprocessors!).
+
+
+
+## MIMD - Multiple Instruction Multiple Data
+
+- Each processor fetches its own instructions and operates on its own data.
+- Processors are often off-the-shelf microprocessors.
+- Scalable to a variable number of processor nodes.
+- **Flexible:**
+  - Single-user machines optimized for high-performance in specific applications.
+  - Multi-programmed machines capable of running many tasks simultaneously.
+  - Combination of these functions.
+- Cost/performance advantages due to the use of off-the-shelf microprocessors.
+- **Fault Tolerance Issues:**
+  - Ensuring reliability and continuity of operations despite hardware failures.
+- To exploit MIMD with \( n \) processors:
+  - Requires at least \( n \) threads or processes for execution.
+  - Threads are typically identified by programmers or created by compilers.
+  - Parallelism is managed at the thread level, known as **thread-level parallelism**.
+- **Thread**: Can range from a large, independent process to parallel iterations of a loop. Note: Parallelism is identified and managed by software, not hardware as in superscalar CPUs.
+
+## MIMD Machines
+
+MIMD machines are categorized into two classes based on the number of processors involved, influencing memory organization and interconnection strategies:
+
+#### Centralized Shared-Memory Architectures
+
+- **Processor Count:** Typically involves a few dozen processor chips (< 100 cores).
+- **Memory Organization:**
+  - Utilizes large caches.
+  - Implements single memory with multiple banks.
+- **Architecture Style:** Often referred to as Symmetric Multiprocessors (SMP) with Uniform Memory Access (UMA).
+
+#### Distributed Memory Architectures
+
+- **Support for Large Processor Counts:**
+  - Requires high-bandwidth interconnect.
+- **Disadvantages:**
+  - Involves challenges in data communication among processors due to the distributed memory setup.
+
+These architectures vary significantly in how they handle memory access and interconnectivity, impacting their scalability and performance in parallel computing applications.
+
+
+***I skipped game consoles and microsoft's vision***
+
+## From ILP to TLP: From the Processor to the Programmer
+
+Transitioning from ILP (Instruction-Level Parallelism) to TLP (Thread-Level Parallelism) simplifies processor design by removing hardware intended for optimizing instruction scheduling at runtime. Here's a clearer explanation of the key points:
+
+- **Simplified Design Approach:**
+  - Hardware optimizing instruction scheduling at runtime is stripped out.
+  - Processors like Xenon and Cell do not incorporate an instruction window.
+
+- **Order of Execution:**
+  - Instructions are processed in the order they are fetched.
+  - Adjacent, non-dependent instructions are executed in parallel whenever possible.
+
+- **Static Execution:**
+  - Implementation is straightforward.
+  - Requires significantly less die space compared to dynamic execution.
+
+- **Die Space Efficiency:**
+  - Without an instruction window, more transistors are available for additional execution units.
+  - This optimizes the die space usage by focusing on increasing actual execution capabilities rather than complex scheduling hardware.
+
+- **Rethinking Processor Organization:**
+  - Eliminating the instruction window cannot simply be replaced by adding more execution units.
+  - Requires a reconsideration of how the processor's resources are organized and utilized to effectively handle parallelism at the thread level.
+
+This approach shifts the focus from intricate runtime optimizations towards a more efficient use of hardware resources to enhance thread-level parallelism and overall processor performance.
+
+
+## Procedural Synthesis in a Nutshell
+
+Procedural synthesis is a technique used to enhance the efficiency of rendering in computer graphics. It achieves this by dynamically generating detailed geometry data at runtime, directly from higher-level scene descriptions that are stored statically. This approach helps optimize both system bandwidth and main memory usage.
+
+ Here's how it works:
+
+- **For 3D Games:**
+  - Artists use 3D rendering programs to create game content.
+  - Each model is converted into collections of polygons.
+  - These polygons are represented in the computer's memory as sets of vertices.
+
+- **Real-time Rendering in Games:**
+  - Models displayed on-screen are initially stored as vertex data in main memory.
+  - This vertex data is then sent from main memory to the GPU.
+  - The GPU renders this data into a 3D image, which is output to the monitor as a sequence of frames.
+
+### Limitations
+
+However, procedural synthesis faces several challenges:
+
+- **Increasing Costs of Art Assets:**
+  - The expense of creating 3D game assets is rising due to the growing size and complexity of games.
+
+- **Hardware Limitations:**
+  - Console hardware often has limited main memory sizes and bandwidth, which can restrict the efficiency of procedural synthesis in real-time rendering scenarios.
+  </br>
+
+# PDF 16 - GPUs and Heterogeneous Computing Systems
+
+## Xbox 360's Approach
+
+- **High-level Object Descriptions:**
+  - Objects are stored in main memory as high-level descriptions.
+
+- **Dynamic Geometry Generation:**
+  - The CPU dynamically generates object geometry during runtime.
+  - For example, vertex data is generated by running threads.
+
+- **GPU Rendering:**
+  - The GPU utilizes this dynamically generated vertex information to render objects.
+  - It treats the data as if it were retrieved directly from main memory.
+
+This approach optimizes memory usage and processing efficiency by dynamically creating detailed geometry only when needed, enhancing overall rendering performance on the Xbox 360.
+
+## GPU vs CPU 
+
+| **Aspect**                                    | **GPU**                                                                                     | **CPU**                                                         |
+|-----------------------------------------------|----------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| **Parallelism**                               | Tailored for highly parallel operation                                                        | Executes programs serially                                       |
+| **Execution Units**                           | Many parallel execution units                                                                 | Few execution units, higher clock speeds                          |
+| **Transistor Count**                          | Higher transistor count                                                                       | Lower transistor count                                           |
+| **Determinism**                               | Generally deterministic in operation (changing slowly)                                         | Deterministic in operation                                       |
+| **Pipeline Depth**                            | Deeper pipelines (several thousand stages)                                                     | Shallow pipelines (10-20 stages)                                 |
+| **Memory Interfaces**                         | Faster and more advanced memory interfaces                                                     | Slower memory interfaces, optimized for lower data throughput    |
+
+This table highlights the key differences between GPUs and CPUs, emphasizing their respective strengths in handling parallelism, execution units, transistor counts, determinism, pipeline depth, and memory interface capabilities.
+
+## The GPU pipeline
+
+The GPU receives geometry information from
+the CPU as an input and provides a picture as
+an output
+
+Host Interface → Vertex Processing → Triangle Setup → Pixel Processing → Memory Interface
+
+### Host Interface
+
+- The host interface serves as the communication bridge between the CPU and the GPU.
+- It receives commands from the CPU and retrieves geometry information from system memory.
+- The host interface outputs a stream of vertices in object space along with associated information such as normals, texture coordinates, per-vertex color, etc.
+
+### Vertex Processing
+
+- The vertex processing stage receives vertices from the host interface in object space and outputs them in screen space.
+- This transformation can range from a simple linear transformation to complex operations involving morphing effects.
+- Normals, texture coordinates, and other associated data are also transformed.
+- No new vertices are created or discarded in this stage; there is a 1:1 mapping between input and output vertices.
+
+### Triangle Setup
+
+- In this stage, geometric information is converted into raster information.
+  - Screen space geometry serves as the input, and pixels are the output.
+- Before rasterization, triangles that are backfacing or located outside the viewing frustum are typically rejected.
+- Some GPUs also perform hidden surface removal at this stage, enhancing rendering efficiency by discarding non-visible surfaces before pixel processing.
+
+> Rasterization is the process of converting vector-based geometric shapes or objects into a raster image composed of pixels. In computer graphics, rasterization involves determining which pixels on the screen should be filled based on the geometric properties (such as vertices and edges) of the shapes being rendered. This process is essential for displaying graphics on a digital screen, where each pixel represents a discrete point of color or intensity. Rasterization ensures that the geometric shapes defined in a 3D scene are accurately represented on a 2D display by mapping them to the appropriate pixels.
+
+### Fragment Processing
+
+- Each fragment provided by triangle setup is fed into fragment processing as a set of attributes (position, normal, texture coordinates, etc.), which are used to compute the final color for each pixel.
+- The computations in this stage include texture mapping and various mathematical operations.
+- Fragment processing is typically the bottleneck in modern applications, as it involves intensive calculations to determine the final appearance of each pixel in the rendered image.
+
+### Memory Interface
+
+- Fragment colors computed by the previous stage are written to the framebuffer.
+- Historically, this stage used to be the biggest bottleneck before fragment processing became more computationally intensive.
+- Before fragments are finally written, some are rejected based on tests such as z-buffer, stencil, and alpha tests.
+- In modern GPUs, z and color data are often compressed to reduce framebuffer bandwidth, although this compression does not typically affect the size of the framebuffer itself.
+
+</br>
+
+
+> In the graphics processing pipeline, the journey from the host interface to the memory interface involves several key stages. Initially, the host interface acts as a link between the CPU and GPU, handling commands and fetching geometry data from system memory. This data includes vertices with associated attributes like normals and texture coordinates. Vertex processing then transforms these vertices from object space to screen space, performing necessary computations without creating or discarding vertices. Next, in triangle setup, geometric data is rasterized into pixel data for rendering, where backfacing triangles and those outside the view frustum are often rejected. Following rasterization, fragment processing computes final pixel colors using attributes from vertex processing, which can include texture mapping and complex mathematical operations, often representing a performance bottleneck. Finally, in the memory interface stage, computed fragment colors are written to the framebuffer after passing through tests like z-buffering and compression to optimize framebuffer bandwidth. This comprehensive process ensures accurate rendering of 3D scenes on 2D displays with efficient use of GPU resources.
+
+## Programmability in the GPU
+
+- Vertex, fragment processing, and now triangle setup are programmable stages.
+- Programmers can write custom programs executed for each vertex and fragment.
+
+
+This programmability enables the creation of highly customizable geometry and shading effects, surpassing the generic appearance of older 3D applications.
+
+
+## GPU/CPU Intercation
+The CPU and GPU inside the system work in parallel
+with each other
+
+There are two
+threads
+going on, one for the CPU and
+one for the GPU, which communicate through a
+command buffer
+
+> CPU writes commands on the buffer and GPU reads them
+
+
+### CPU/GPU Interaction (cont.)
+
+- If the command buffer is drained empty, the system is CPU limited, causing the GPU to idle while waiting for new input.
+  - **Note:** Despite powerful GPUs, applications won't run faster if the CPU cannot keep up.
+- Conversely, if the command buffer fills up, the system becomes GPU limited, causing the CPU to wait for the GPU to process the commands.
+> Programs utilizing the GPU do not adhere to the traditional sequential execution model, as tasks are parallelized across multiple processing units on the GPU.
+
+
+
+### CPU Program Behavior
+
+In the CPU program below, the object is not drawn immediately after statement A and before statement B. Instead, the API call merely adds the command to draw the object to the GPU command buffer.
+
+```
+> Statement A
+> API call to draw object
+> Statement B
+```
+
+his leads to a number of synchronization
+considerations
+
+
+### Synchronization Issues (cont.)
+
+In computer graphics, synchronization between the CPU and GPU is crucial for efficient operation. Modern APIs use semaphore-style mechanisms to manage data dependencies and ensure that the CPU and GPU coordinate effectively. 
+
+When the CPU attempts to modify data that is currently referenced by a pending GPU command, it must wait until the GPU completes its processing to avoid conflicts. This waiting period, known as spinning, halts CPU execution, which is inefficient because the CPU could otherwise be performing other useful computations.
+
+Moreover, as the GPU processes commands from the command buffer, it gradually consumes a significant portion of its capacity. This consumption reduces the GPU's ability to execute commands in parallel with the CPU, potentially leading to performance bottlenecks in applications that rely heavily on graphics processing.
+
+Effective synchronization mechanisms and careful management of command buffer usage are essential to maximize the overall efficiency and performance of CPU-GPU interactions in graphics-intensive applications.
+
+To avoid these problems:
+
+### Inlining Data
+
+Inlining data refers to the practice of embedding small or frequently accessed data directly into the program code or into data structures, rather than accessing it through separate memory locations. This technique aims to improve performance by reducing memory access latency and potentially optimizing cache usage. By avoiding the overhead associated with fetching data from memory, inlined data can lead to faster execution times, especially in scenarios where data access speed is critical.
+
+### Renaming Data
+
+Renaming data in the context of GPUs typically refers to techniques used to optimize memory access and reduce dependencies among instructions. In GPU architectures, registers are often renamed to allow multiple threads or processes to execute concurrently without interference. This helps in avoiding data hazards such as read-after-write (RAW) and write-after-read (WAR) conflicts by assigning temporary or virtual names to registers, ensuring that each thread operates on its own distinct data set. By renaming registers dynamically, GPUs can effectively increase instruction-level parallelism (ILP) and optimize the utilization of hardware resources.
+
+### GPU Readbacks
+
+GPU readbacks involve transferring data from the GPU back to the CPU's main memory. This process is necessary when the CPU needs to access results or data processed by the GPU. While GPU computations are typically faster due to their highly parallel nature and specialized hardware, readbacks can introduce performance overheads. This is because transferring data between the GPU and CPU involves crossing the PCIe bus, which has limited bandwidth compared to internal GPU memory access. Therefore, minimizing the frequency and volume of GPU readbacks is crucial for optimizing overall system performance in GPU-accelerated applications.
+
+#### Here are some GPU optimization tips:
+
+- **Batch Dispatch:** Utilize the GPU's parallelism and pipelining capabilities by dispatching large batches of work with each drawing call. Sending small batches or individual primitives (like triangles) underutilizes the GPU's processors and pipelines.
+
+- **Rendering Order:** When rendering objects, consider front-to-back ordering rather than back-to-front or random ordering. GPUs typically use the z-buffer algorithm for hidden surface removal, and rendering front-to-back can optimize efficiency by minimizing overdraw.
+
+- **Consider CPU Limitations:** Front-to-back sorting is beneficial primarily when the GPU, not the CPU, is the limiting factor in rendering performance. If the CPU is already operating at its maximum capacity, optimizing rendering order may not yield significant performance improvements.
+
+Certainly! Here's the formatted text:
+
+### A Specialized Processor
+
+- **Very Efficient For**
+  - Fast Parallel Floating Point Processing
+  - Single Instruction Multiple Data Operations
+  - High Computation per Memory Access
+
+- **Not As Efficient For**
+  - Double Precision
+  - Logical Operations on Integer Data
+  - Branching-Intensive Operations
+  - Random Access, Memory-Intensive Operations
+
+This outline succinctly highlights the strengths and weaknesses of a specialized processor.
+
+</br>
+
+# PDF 17 - Parallel Processors:MIMD Architectures
+
+## How do parallel processors share data?
+The Memory Address Space Model refers to how a computer system organizes and manages memory addresses for accessing data and instructions within its memory hierarchy. It encompasses the organization, allocation, and access mechanisms for memory locations, providing a structured way for software and hardware components to interact with memory.
+
+Key aspects of the Memory Address Space Model include:
+
+1. **Addressability:** Memory is divided into discrete units, typically bytes or words, each identified by a unique address. The size of these units and the range of addresses define the total addressable memory space.
+
+2. **Addressing Modes:** Different systems employ various addressing modes to specify how addresses are computed or accessed. This can include direct addressing (explicitly specifying an address), indirect addressing (using a pointer or reference to access data indirectly), and indexed addressing (using an offset or index to compute an address).
+
+3. **Memory Segmentation:** Some architectures organize memory into segments, where each segment represents a portion of the address space with its own base address and limit. Segmentation allows for more flexible memory management and protection mechanisms.
+
+4. **Memory Protection:** Modern systems implement memory protection mechanisms to control access to memory regions. This ensures that programs do not interfere with each other's memory space, enhancing security and stability.
+
+5. **Virtual Memory:** Virtual memory systems extend physical memory by using disk storage as an extension, allowing larger programs or multiple programs to run simultaneously. It provides the illusion of a larger memory space than physically available by swapping data between physical RAM and disk storage.
+
+6. **Address Space Layout:** The layout of memory addresses can vary between systems, including the arrangement of code, data, stack, and heap segments within the address space. This layout influences program execution and memory access patterns.
+
+Overall, the Memory Address Space Model defines the framework within which programs interact with memory, ensuring efficient and secure utilization of system resources across various computing platforms.
+
+## Memory Address Space
+Single logically shared address space:
+A memory reference
+can be made by any processor to any memory location
+
+Shared Memory Architectures.
+  The address space is shared among processors: The same physical
+address on 2 processors refers to the same location in memory
+
+
+Here's the formatted text:
+
+### Shared Address
+
+- **The processors communicate among them through shared variables in memory.**
+- **Implicit management of the communication through load/store operations to access any memory locations.**
+  - Oldest and most popular model.
+- **Shared memory does not mean that there is a single centralized memory.**
+
+This layout organizes the information clearly, highlighting the key points about the Shared Address memory model.
+
+## Memory Address Space Model
+
+Here's the formatted text with a visual example:
+
+### Single Logically Shared Address Space
+
+- **Memory reference can be made by any processor to any memory location**
+  - **Shared Memory Architectures**
+    - The address space is shared among processors: The same physical address on 2 processors refers to the same location in memory.
+
+### Multiple and Private Address Spaces
+
+- **Processors communicate through send/receive primitives**
+  - **Message Passing Architectures**
+    - The address space is logically disjoint and cannot be addressed by different processors: the same physical address on 2 processors refers to 2 different locations in 2 different memories.
+
+**Visual Example:**
+
+```
+Shared Memory Architectures:
+Processor 1                      Processor 2
+  |                                |
+  V                                V
+Memory:                           Memory:
+Address 0x1000: Data A           Address 0x1000: Data A
+
+Message Passing Architectures:
+Processor 1                      Processor 2
+  |                                |
+  V                                V
+Memory of P1:                     Memory of P2:
+Address 0x1000: Data A           Address 0x1000: Data B
+```
+
+In Shared Memory Architectures, both processors access the same physical memory address (0x1000) and retrieve the same data (Data A). In Message Passing Architectures, the same physical address (0x1000) on different processors refers to different locations (Data A in Processor 1's memory and Data B in Processor 2's memory).
+
+## Multiple and Private Addresses
+
+In architectures with multiple and private addresses, processors communicate through sending and receiving messages rather than directly accessing shared memory locations. Each processor manages its own private memory space independently. 
+
+Communication between processors is explicitly managed using send and receive primitives, which allow them to exchange data via messages. Unlike shared memory architectures where multiple processors can access the same memory location, here each processor accesses its own private memory locations exclusively. 
+
+This approach avoids cache coherency issues that arise in shared memory systems, where multiple processors accessing and modifying shared data can lead to inconsistencies or conflicts. By maintaining private memory spaces, each processor retains control over its data without needing to synchronize or manage shared memory accesses with other processors.
+
+## Physical Memory Organization
+
+
+
+| **Architecture Type**                   | **Centralized Shared-Memory Architectures (SMP/UMA)**                            | **Distributed Memory Architectures (NUMA)**                                |
+|----------------------------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| **Characteristics**                    | - Few dozen processor chips (< 100 cores)                                       | - Supports large processor counts                                            |
+|                                        | - Large caches, multiple banks of shared memory                                 | - Requires high-bandwidth interconnect for communication between processors  |
+|                                        | - Uniform Memory Access (UMA), where access time to any memory location is uniform | - Non-Uniform Memory Access (NUMA), where access time to memory can vary      |
+|                                        | - Often used in symmetric multiprocessors (SMP)                                 | - Communication among processors is a challenge                               |
+
+
+
+## Programming Models
+
+
+### Shared Memory Programming Model
+
+**Concept:**
+- In a shared memory model, multiple processors communicate by accessing shared variables in a common memory space.
+
+**Characteristics:**
+- **Implicit Communication:** Communication between processors is managed implicitly through load/store operations. When one processor updates a shared variable, other processors can access the updated value directly from memory.
+- **Shared Address Space:** All processors share a single, global address space. This means that a memory address used by one processor refers to the same location as the same address used by another processor.
+- **Synchronization:** Mechanisms such as locks, semaphores, and barriers are often used to coordinate access to shared data and ensure consistency.
+- **Cache Coherency:** Ensuring that all processors have a consistent view of memory can be challenging. Cache coherency protocols are often used to maintain consistency.
+
+**Pros:**
+- Simplicity in data sharing: Direct access to shared variables can be simpler to program.
+- Flexibility: Suitable for a variety of applications, especially those requiring frequent read/write access to shared data.
+
+**Cons:**
+- Scalability: As the number of processors increases, the complexity of maintaining cache coherency and synchronization increases.
+- Performance: Contention for shared memory and synchronization overhead can impact performance.
+
+**Example Use Cases:**
+- Multi-threaded applications on a single machine.
+- High-performance computing tasks where shared data structures are frequently accessed.
+
+### Message Passing Programming Model
+
+**Concept:**
+- In a message passing model, processors communicate by explicitly sending and receiving messages. Each processor has its own private memory space.
+
+**Characteristics:**
+- **Explicit Communication:** Communication is explicitly managed through send/receive operations. Processors must send messages to each other to exchange data.
+- **Private Address Spaces:** Each processor has its own separate address space. A memory address in one processor's space does not refer to the same location as the same address in another processor's space.
+- **Synchronization:** The act of sending and receiving messages inherently provides synchronization. However, additional synchronization mechanisms may be used if needed.
+- **No Cache Coherency Issues:** Since each processor has its own private memory, there are no cache coherency problems.
+
+**Pros:**
+- Scalability: Easier to scale to a large number of processors since there is no need for maintaining a consistent global memory.
+- Performance: Avoids contention for shared memory, and communication can be optimized for the specific network topology.
+
+**Cons:**
+- Complexity: Programming can be more complex due to the need to explicitly manage communication and data distribution.
+- Latency: Communication latency can be higher compared to direct memory access in shared memory models.
+
+**Example Use Cases:**
+- Distributed systems and cluster computing.
+- Parallel applications that run on multiple machines, such as scientific simulations and large-scale data processing.
+
+**Summary:**
+- **Shared Memory Model**: Processors communicate through a common shared memory. Suitable for systems with a smaller number of processors and applications requiring frequent access to shared data.
+- **Message Passing Model**: Processors communicate by sending and receiving messages. Suitable for scalable systems with a large number of processors and distributed applications.
+
+Understanding these two models helps in choosing the appropriate approach based on the specific requirements and constraints of the application being developed.
+
+### Which is Better? Shared Memory (SM) or Message Passing (MP)?
+
+**Advantages of Message Passing:**
+- **Explicit Communication:** Sending and receiving of messages.
+- **Easier Control of Data Placement:** No automatic caching.
+
+**Disadvantages of Message Passing:**
+- **High Overhead:** Message passing overhead can be quite high.
+- **Complex Programming:** More complex to program.
+- **Reception Technique:** Introduces the question of reception technique (interrupts/polling).
+
+
+
+### Message Passing in Massively Parallel Processors: Problems
+
+- **Data Layout Management:**
+  - All data layout must be handled by software.
+  - Cannot retrieve remote data except with message request/reply.
+
+- **High Software Overhead:**
+  - Early machines had to invoke the OS on each message (100 µs - 1 ms/message).
+  - Even user-level access to the network interface incurs dozens of cycles overhead (network interface might be on the I/O bus).
+  - Sending messages can be relatively cheap (similar to stores).
+  - Receiving messages is expensive, requiring polling or interrupts.
+
+
+
+## Bus-Based Symmetric Shared Memory
+
+- **Dominance and Market Presence:**
+  - Dominate the server market even now.
+  - Building blocks for larger systems; arriving to desktop.
+- **Attractiveness:**
+  - Attractive as throughput servers and for parallel programs.
+  - Fine-grain resource sharing.
+  - Uniform access via loads/stores.
+  - Automatic data movement and coherent replication in caches.
+  - Cheap and powerful extension.
+- **Mechanisms:**
+  - Normal uniprocessor mechanisms to access data.
+  - Key is the extension of memory hierarchy to support multiple processors.
+
+## Shared Memory Machines
+
+- **Categories:**
+  - Non-cache coherent.
+  - Hardware cache coherent.
+- **Performance and Flexibility:**
+  - Will work with any data placement (but might be slow).
+  - Can choose to optimize only critical portions of code.
+- **Communication:**
+  - Load and store instructions used to communicate data.
+  - No OS involvement.
+  - Low software overhead.
+- **Special Features:**
+  - Usually some special synchronization primitives.
+- **Large Scale Systems:**
+  - Logically distributed shared memory is implemented as physically distributed memory modules.
+
+  ### The Problem of Cache Coherence
+
+In shared-memory architectures, both private data (used by a single processor) and shared data (used by multiple processors) are cached. This caching introduces several issues, especially when it involves shared data.
+
+#### Key Points:
+
+- **Private and Shared Data Caching:**
+  - **Private Data:** Used by a single processor.
+  - **Shared Data:** Used by multiple processors to facilitate communication.
+
+- **Replication of Shared Data:**
+  - Shared values can be replicated in multiple caches.
+  - Benefits include:
+    - Reduced access latency.
+    - Decreased required memory bandwidth.
+    - Lower contention when multiple processors read the shared data simultaneously.
+
+- **Cache Coherence Problem:**
+  - Private processor caches can hold copies of the same variable.
+  - A write operation by one processor may not be immediately visible to other processors.
+  - Multiple copies of the same data across different caches lead to **cache coherence** issues.
+
+#### Explanation:
+
+Cache coherence refers to the challenge of ensuring that all copies of a shared variable in different caches reflect the most recent update. Without coherence protocols, inconsistencies can arise, causing processors to work with stale data, leading to incorrect program execution. This problem becomes critical as more processors and cores are integrated into shared-memory systems.
+
+### What Does Coherency Mean?
+
+#### Informal Definition:
+- **Strict Definition:** 
+  - "Any read must return the most recent write."
+  - This is too strict and difficult to implement.
+
+#### Practical Definition:
+- **Better Definition:**
+  - "Any write must eventually be seen by a read."
+  - All writes must be seen in the proper order, known as "serialization."
+
+#### Ensuring Coherency:
+
+To ensure coherency, two main rules must be followed:
+
+1. **Visibility of Writes:**
+   - If Processor P writes to location x and Processor P1 reads from x, P's write will be seen by P1 if:
+     - The read and write are sufficiently far apart.
+     - No other writes to x occur between these two accesses.
+
+2. **Serialization of Writes:**
+   - Writes to a single location are serialized:
+     - Two writes to the same location by any two processors are seen in the same order by all processors.
+     - The latest write will always be seen.
+     - This prevents illogical ordering, where an older value could be seen after a newer value.
+
+These rules ensure that all processors have a consistent view of memory and that the most recent updates are reflected correctly across the system.
+
+### Potential Solutions: Cache Coherence Protocols
+
+To maintain coherency in multiprocessor systems, hardware-based solutions, known as cache-coherence protocols, are employed. The key issue in implementing these protocols is tracking the status of any sharing of a data block.
+
+## There are two primary classes of protocols:
+
+### Snooping Protocols
+- **Mechanism:**
+  - All caches monitor (or "snoop") on a common communication medium, such as a bus, to track data.
+  - When a processor wants to read or write to a memory location, it broadcasts the request on the bus.
+  - All other caches check if they have a copy of the data and take appropriate action to ensure coherence.
+  
+- **Advantages:**
+  - Simplicity and ease of implementation.
+  - Effective for systems with a small number of processors.
+
+- **Disadvantages:**
+  - Limited scalability due to the need for all caches to monitor the common bus.
+  - High bus traffic, which can become a bottleneck in larger systems.
+
+
+
+
+### Directory-Based Protocols
+- **Mechanism:**
+  - Uses a directory to keep track of the sharing status of data blocks.
+  - The directory maintains information about which caches have copies of each memory block.
+  - When a processor wants to read or write a memory location, it queries the directory to determine the current status of the data.
+  - The directory coordinates the actions needed to maintain coherence.
+
+- **Advantages:**
+  - Better scalability than snooping protocols.
+  - Reduced bus traffic since not all caches need to monitor all transactions.
+
+- **Disadvantages:**
+  - More complex to implement due to the need for a centralized directory.
+  - Potential bottlenecks if the directory itself becomes overloaded.
+
+These protocols ensure that all processors in a multiprocessor system have a consistent view of memory, avoiding issues where multiple copies of the same data might lead to incoherent states. By tracking the status of shared data, these protocols maintain data integrity and coherence across the system.
+
+
+
+
+## Two Basic Snooping Protocols
+
+Snooping protocols are fundamental in maintaining cache coherence in multiprocessor systems. There are two primary types of snooping protocols: **write-invalidate** and **write-update**. Each protocol has its own mechanism for ensuring that all caches have a consistent view of the memory.
+
+#### Write-Invalidate Protocol
+- **Mechanism:**
+  - When a processor wants to write to a cache block, it sends an invalidate signal on the bus to all other caches.
+  - All other caches invalidate their copy of the block.
+  - After invalidation, the writing processor can update the block in its cache, ensuring it has the only valid copy.
+  - Subsequent reads by other processors will miss in their caches and will have to fetch the updated block from the writing processor or memory.
+
+- **Advantages:**
+  - Ensures that only one processor has the right to write to a block, avoiding conflicts.
+  - Reduces the amount of data transferred over the bus since only invalidation signals are broadcast.
+
+- **Disadvantages:**
+  - Other processors must fetch the block from memory or the writing processor after it has been invalidated, which can increase latency.
+
+#### Write-Update Protocol
+- **Mechanism:**
+  - When a processor wants to write to a cache block, it sends an update signal on the bus with the new data.
+  - All other caches that have a copy of the block update their copies with the new data.
+  - This ensures that all caches have the most recent data immediately after the write operation.
+
+- **Advantages:**
+  - Reduces the need for caches to fetch updated data from memory or the writing processor since they receive updates directly.
+  - Can be more efficient in systems where data is frequently read by multiple processors after being written.
+
+- **Disadvantages:**
+  - Increases bus traffic since every write operation results in an update broadcast.
+  - Can be less efficient if the data is frequently written by multiple processors, leading to constant updates.
+
+### Summary
+Both protocols aim to ensure that all processors have a consistent view of memory, but they differ in how they manage write operations:
+
+- **Write-Invalidate Protocol**: Invalidation signals are used to ensure exclusive write access, reducing bus traffic but potentially increasing read latency.
+- **Write-Update Protocol**: Update signals broadcast new data to all caches, reducing read latency but increasing bus traffic.
+
+Choosing between these protocols depends on the specific characteristics and requirements of the system, such as the number of processors and the typical access patterns to shared data.
+
+## Write-Back Cache and Snooping Protocols
+
+#### Concept:
+When a cache miss occurs, identifying the most recent data value of a cache block can be challenging because the most recent value might be in a cache rather than in memory.
+
+#### Solution: Snooping Scheme
+
+1. **Cache Misses and Writes:**
+   - The same snooping scheme used for managing cache coherence during writes can be employed to handle cache misses.
+
+2. **Snooping Mechanism:**
+   - Each processor continuously monitors (or "snoops") the addresses placed on the bus.
+   - If a processor detects a read request for a cache block it holds a dirty (modified) copy of, it will respond by providing the requested block.
+   - The memory access that initiated the read request is aborted since the most recent data is supplied by the snooping processor.
+
+#### Benefits:
+- **Up-to-Date Data:**
+  - Ensures that the most recent data is always retrieved, even if it resides in another processor's cache.
+  
+- **Efficiency:**
+  - Reduces unnecessary memory accesses by retrieving data directly from caches, which can be faster than accessing main memory.
+
+### Snooping Protocols: An Example
+
+#### Write-Invalidate Protocol, Write-Back Cache
+
+1. **Memory Block States:**
+   - **Clean (Shared):** Clean in all caches and up-to-date in memory.
+   - **Dirty (Exclusive):** Dirty in exactly one cache.
+   - **Not in any caches:** The block is not present in any cache.
+
+2. **Cache Block States:**
+   - **Clean (Shared/Read Only):** The block is clean, not modified, and can be read.
+   - **Dirty (Modified/Exclusive):** The cache has the only copy, it is writable, and dirty (cannot be shared).
+   - **Invalid:** The block contains no valid data.
+
+### Example:
+
+- **Scenario:**
+  - Processor P1 has modified a cache block and holds the dirty copy.
+  - Processor P2 requests the same cache block, resulting in a cache miss.
+  
+- **Process:**
+  - P2's request is broadcast on the bus.
+  - P1 detects the request, identifies it has the most recent (dirty) copy, and sends the data to P2.
+  - The original memory access is aborted, and P2 receives the latest data without accessing the main memory.
+
+### Explanation:
+The write-back cache with snooping ensures that when a processor needs data, it gets the latest version, whether that data is in another cache or in memory. This is achieved through a snooping mechanism where processors monitor the bus for requests. If a processor has a modified copy of the requested data (dirty copy), it supplies this data directly, aborting the original memory access. This approach maintains data consistency and enhances system performance by minimizing memory access latency.
+
+
+
+## MSI Invalidate Protocol
+
+#### Overview:
+
+The MSI (Modified, Shared, Invalid) Invalidate Protocol is a cache coherence protocol used in multiprocessor systems to maintain consistency among caches sharing the same memory block.
+
+#### States:
+
+- **M (Modified):** Indicates that the cache has a modified copy of the memory block. This block is writable, and changes are not reflected in the main memory.
+  
+- **S (Shared):** Indicates that the cache has a clean, read-only copy of the memory block. It can be shared by multiple caches, and any updates are propagated to other caches.
+
+- **I (Invalid):** Indicates that the cache does not have a valid copy of the memory block. It must obtain a copy from another cache or from main memory before any operations can be performed on it.
+
+#### Protocol Details:
+
+1. **Read Operation:**
+   - A read operation obtains the memory block in the "shared" state, even if it's the only copy in the cache.
+  
+2. **Write Operation:**
+   - Before performing a write operation, a cache must obtain exclusive ownership of the memory block.
+   - If a cache wants to write to a block currently in the "Shared" state, it initiates a BusRdx (Bus Read Exclusive) request.
+     - This request causes all other caches holding the block in the "Shared" state to invalidate (demote) their copies.
+     - If the block is in the "Modified" state in another cache, that cache will flush its changes back to memory or downgrade to the "Shared" state.
+     - Even if the block is already in the "Shared" state (hit in S), the cache can promote it to "Modified" (upgrade).
+
+3. **Replacement:**
+   - When replacing a cache block:
+     - If a block in "Shared" state is replaced, it transitions directly to "Invalid".
+     - If a block in "Modified" state is replaced, it must first write back its changes to memory before transitioning to "Invalid".
+
+#### Example Scenario:
+
+- **Scenario:**
+  - Processor P1 has a modified (M) copy of a memory block.
+  - Processor P2 requests the same block for reading.
+
+- **Process:**
+  - P2's read request will obtain the block in the "Shared" state from P1's cache.
+  - If P2 wants to modify the block, it sends a BusRdx request to invalidate (demote) other caches holding the block in "Shared" state.
+  - P1's cache, holding the block in "Modified" state, will respond by flushing its changes to memory or downgrading to "Shared".
+
+#### Explanation:
+
+The MSI Invalidate Protocol ensures cache coherence by maintaining three states for each memory block across multiple caches: Modified (M), Shared (S), and Invalid (I). This protocol enables efficient read and write operations among caches. Reads are serviced with the block in "Shared" state, and writes require exclusive ownership, achieved through BusRdx requests to invalidate other caches' copies. This approach minimizes data inconsistencies and ensures that all caches see the most recent data updates in a coordinated manner.
+
+## Snoopy Coherence Protocols
+
+### Complications for the Basic MSI Protocol
+
+- **Operations are not atomic:**
+  - For example, detecting a cache miss, acquiring the bus, and receiving a response are separate steps.
+  - This separation creates possibilities for deadlock and race conditions.
+
+- **Deadlock and Race Conditions:**
+  - The non-atomic nature of operations in MSI protocols can lead to situations where processors deadlock or race to access shared resources.
+
+- **Solution to Deadlock:**
+  - One approach to mitigate deadlock is for the processor sending an invalidate request to hold the bus until all other processors receive the invalidate signal.
+
+### Extensions to MSI Protocol:
+  - **MESI Protocol:** Adds an "Exclusive" state to indicate that a clean block exists exclusively in one cache.
+    - Prevents the need to issue an invalidate operation when a write occurs.
+  
+- **Owned State:**
+  - Introduces an "Owned" state to enhance cache coherence protocols, indicating that a cache has exclusive ownership rights to the block.
+
+### Explanation:
+
+The basic MSI (Modified, Shared, Invalid) protocol faces challenges due to the non-atomic nature of its operations, which can lead to potential issues such as deadlock and race conditions in multiprocessor systems. To address these issues, solutions like holding the bus until invalidate signals are processed help in managing coherence. Extensions like the MESI protocol introduce additional states (e.g., Exclusive and Owned) to optimize coherence management, ensuring efficient and synchronized access to shared memory blocks across caches. These enhancements improve the overall performance and reliability of cache coherence protocols in multiprocessor environments.
+
+## Snooping Cache Variations: MESI Protocol
+
+The MESI (Modified, Exclusive, Shared, Invalid) protocol is an enhancement of the basic MSI protocol used in cache coherence, offering four distinct states to manage data across multiple caches efficiently:
+
+- **Modified (M):** This state indicates that the cache holds a dirty copy of the block. It is exclusive to this cache, meaning no other caches have this block. The data can be both read from and written to by the processor in this cache.
+
+- **Exclusive (E):** In the Exclusive state, the cache holds a clean copy of the block. It is exclusive to this cache, implying that no other caches currently have this block. The data can be read from by other caches but can only be written to by this cache without requiring any updates to other caches.
+
+- **Shared (S):** This state denotes that the cache holds a clean copy of the block, which may also exist in other caches. The data is read-only in this cache to maintain coherence across all caches that share this block.
+
+- **Invalid (I):** The Invalid state indicates that the cache block is not valid, meaning it does not currently hold any meaningful data. This state typically occurs when the cache line is initially allocated or when it has been invalidated due to updates or replacements.
+
+The MESI protocol facilitates efficient cache coherence by allowing caches to manage the state of data blocks dynamically as they are accessed and modified across multiple processors. It minimizes unnecessary data transfers and ensures that each cache operates with consistent and up-to-date data while maintaining performance in multiprocessor systems.
+
+> In both
+S
+and
+E
+, the memory has an up-to-date
+version of the data
+>
+> A write to a
+E
+block does not require to send the
+invalidation signal on the bus, since no other
+copies of the block are in cache.
+>
+>A write to a
+S
+block implies the invalidation of
+the other copies of the block in cache
+
+
+
+
+
+## The Problem of Memory Consistency
+
+- **What is consistency?**
+  - When must a processor see the new value of data updated by another processor?
+  
+- **Example Scenario:**
+  ```
+  P1: A = 0;        |  P2: B = 0;
+    .....           |      .....
+    A = 1;          |      B = 1;
+    L1: if (B == 0) |      L2: if (A == 0) ...
+
+  ```
+  - Is it impossible for both `if` statements L1 & L2 to be true?
+    ```
+    Yes, it is impossible for both if statements L1 & L2 to be true simultaneously in a consistent memory system. This is because:
+
+    In L1: if (B == 0), P1 is checking the value of B.
+    In L2: if (A == 0), P2 is checking the value of A.
+    According to the scenario:
+
+    P1 writes A = 1 after initially setting A = 0.
+    P2 writes B = 1 after initially setting B = 0.
+    For L1 to be true, B must be 0 at the time of the check. For L2 to be true, A must be 0 at the time of the check. However, because each processor sets its respective variable to 1 after setting it to 0, it's logically impossible for both conditions to be true simultaneously. This highlights the need for consistent memory access to ensure correct program behavior.
+    ```
+  - What if write invalidate is delayed and processor continues?
+    ```
+    If write invalidate (or any memory operation) is delayed and the processor continues execution based on stale or inconsistent data, it can lead to incorrect program behavior. Modern processors and memory systems employ mechanisms like cache coherence protocols (such as MSI, MESI, etc.) to manage such scenarios and ensure memory consistency.
+    ```
+  
+- **Memory consistency models:**
+  - What are the rules for such cases?
+    ```
+    Memory consistency models define the rules regarding when a processor must see the new value of data updated by another processor. The key rules include:
+    Sequential consistency: Requires that all operations from all processors appear to execute in a sequential order, respecting the program order and individual processor's operations.
+    Weak consistency: Allows for relaxed ordering of operations but ensures certain synchronization points are respected.
+    Release consistency: Defines specific synchronization points (acquire and release operations) to manage shared data accesses between processors.
+    Strong consistency: Ensures that the order of operations is maintained strictly across all processors.
+    ```
+
+## Sequential Consistency
+arbitrary order-preserving interleaving of memory references of
+sequential programs
+
+***“A system is sequentially consistent if the result of any execution is
+the same as if the operations of all the processors were executed in
+some sequential order, and the operations of each individual
+processor appear in the order specified by the program”***
+-Leslie
+Lamport
+
+
+
+
+## The Problem of Memory Consistency
+
+Memory consistency refers to the order and visibility of updates to shared data among multiple processors or threads in a parallel computing system. Inconsistent memory operations can lead to incorrect program behavior, especially in concurrent programs where multiple processors or threads access and modify shared data simultaneously.
+
+#### Key Points:
+
+- **Sequential Consistency**: This is the ideal memory consistency model where all operations from all processors appear to execute in a sequential order. It ensures that the results of any execution are equivalent to some sequential order of the operations of all the processors.
+
+- **Synchronization**: In synchronized programs, all access to shared data are ordered by synchronization operations, such as locks and releases. Here's how synchronization ensures memory consistency:
+
+  ```
+  write(x)
+  ...
+  release(s) {unlock}
+  ...
+  acquire(s) {lock}
+  ...
+  read(x)
+  ```
+
+  - **write(x)**: Writes data `x` to memory.
+  - **release(s)**: Releases a synchronization object `s`, typically a lock, allowing other threads to acquire it.
+  - **acquire(s)**: Acquires the synchronization object `s`, typically a lock, ensuring exclusive access to shared data.
+  - **read(x)**: Reads data `x` from memory.
+
+These synchronization points (release and acquire operations) ensure that memory accesses to shared data are properly ordered and consistent across multiple threads or processors. By enforcing these synchronization rules, programs can avoid race conditions and maintain correct behavior even in parallel execution environments.
+
+#### Conclusion:
+
+While achieving sequential consistency across all processors can impose performance overhead in certain cases, modern synchronization mechanisms like locks, semaphores, and barriers provide effective ways to manage shared data accesses while maintaining memory consistency. Designing programs with proper synchronization mechanisms ensures that shared data accesses are properly ordered and synchronized, preventing potential issues of memory inconsistency and data races.
+
+
+
+
+## Synchronization
+
+Synchronization is essential in concurrent systems, including uniprocessor systems, to manage shared resources effectively and ensure correct program behavior. There are two primary classes of synchronization:
+
+- **Producer-Consumer**: In this synchronization pattern, a consumer process must wait until a producer process has produced data. This pattern ensures that consumers do not attempt to access data that has not been produced or is still being produced.
+
+- **Mutual Exclusion**: This synchronization mechanism ensures that only one process can use a resource at any given time. It prevents concurrent access to shared resources that could lead to inconsistent or incorrect results.
+
+These synchronization mechanisms are fundamental for managing shared data access and resource usage in multi-threaded and multi-processor systems, ensuring that operations are properly ordered and executed to maintain program correctness and avoid race conditions.
+
+
+
+## ISA Support for Mutual Exclusion Locks
+
+In computer architectures, supporting mutual exclusion (mutex) locks is crucial for ensuring that only one process accesses a shared resource at a time. Here's how ISA (Instruction Set Architecture) provides support for implementing mutex locks:
+
+- **Regular Loads and Stores**: In sequentially consistent (SC) memory models, basic load and store instructions, along with memory fences in weaker models, can be used to implement mutual exclusion. However, this approach often leads to inefficient and complex code.
+
+- **Atomic Read-Modify-Write (RMW) Instructions**: To simplify and streamline the implementation of mutex locks, many ISAs include specific atomic RMW instructions. These instructions perform a read, modify, and write operation atomically, ensuring that the operation appears to occur instantaneously and without interruption from other processes or threads.
+
+- **Examples of Atomic RMW Instructions**:
+  - **Test and Set**: This instruction reads the current value at memory location `M[a]`, sets it to a specific value (often `1` to indicate locked state), and returns the original value.
+    ```
+    reg_x = M[a];
+    M[a] = 1;
+    ```
+  
+  - **Swap**: This instruction swaps the value at memory location `M[a]` with the value in register `reg_y`.
+    ```
+    reg_x = M[a];
+    M[a] = reg_y;
+    ```
+
+These atomic RMW instructions ensure that operations critical for implementing mutex locks are executed atomically and efficiently within the ISA, thereby facilitating robust synchronization mechanisms in concurrent programming.
