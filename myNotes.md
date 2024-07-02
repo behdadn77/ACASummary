@@ -1635,3 +1635,480 @@ This detailed comparison provides an in-depth analysis of the differences betwee
 | Loop Unrolling Capability      | Allows loop unrolling in hardware               | Not specified                                 |
 
 This table highlights the key differences between the Tomasulo algorithm (as implemented by IBM) and the Scoreboard method (used by CDC), focusing on their respective characteristics related to issue window size, hazard handling, result handling, control mechanism, and additional capabilities like loop unrolling.
+
+
+
+# PDF 12 - Hardware Based Speculation
+## HW-based Speculation combines three core ideas:
+
+1. **Dynamic Branch Prediction**:
+    - **Purpose**: Predicts the direction of branches (e.g., conditional statements) to decide which instructions to fetch and execute.
+    - **Mechanisms**: Utilizes history-based algorithms and heuristics to make accurate predictions, reducing the number of pipeline stalls due to branch instructions.
+
+2. **Dynamic Scheduling**:
+    - **Purpose**: Allows instructions to be executed out of their original program order based on the availability of operands and execution units.
+    - **Mechanisms**: Implements techniques such as Tomasulo's algorithm or reservation stations to track data dependencies and resource availability, enabling better utilization of the CPU's execution units.
+
+3. **Speculative Execution**:
+    - **Purpose**: Executes instructions ahead of time based on predictions, with the intention of committing the results if the predictions are correct.
+    - **Mechanisms**: Uses mechanisms like reorder buffers and checkpoints to ensure that speculative results are only committed if the prediction was accurate. If the prediction was wrong, the speculative execution is rolled back.
+
+## The key ideas behind speculation are:
+
+- **Issuing and executing instructions dependent on a branch before the branch outcome is known**:
+    - This reduces idle cycles in the pipeline by allowing the processor to continue working on subsequent instructions while waiting for the branch decision.
+
+- **Allowing instructions to execute out-of-order but forcing them to commit in-order**:
+    - This ensures that the final state of the processor and memory remains consistent with the program’s intended sequence, maintaining correct program behavior.
+
+- **Preventing any irrevocable action (such as updating state or taking an exception) until an instruction commits**:
+    - This safeguard ensures that any changes made speculatively do not affect the system's state permanently unless the speculative execution is confirmed to be correct, allowing for safe rollbacks if predictions are wrong.
+
+By integrating dynamic branch prediction, dynamic scheduling, and speculative execution with these key ideas, modern processors can significantly enhance performance by maximizing instruction throughput and minimizing pipeline stalls.
+
+Mechanisms are necessary to handle incorrect
+speculation–hardware speculation extends
+dynamic scheduling beyond a branch (i.e.
+behind the basic block)
+
+The Reorder Buffer (ROB) is a critical component in modern processors, particularly in those that use out-of-order execution and speculative execution. Its primary function is to maintain the correct program order for instruction commitment, ensuring that the processor state is updated correctly even when instructions are executed out of order.
+
+## Reorder Buffer (ROB):
+
+### Purpose of the Reorder Buffer
+The ROB is used to:
+- **Ensure In-order Commitment**: While instructions can be executed out-of-order for performance reasons, they must be committed (i.e., their results must be written to the architectural state) in the original program order. The ROB ensures this in-order commitment.
+- **Support Speculative Execution**: When instructions are executed speculatively, the ROB helps manage the results. If a branch prediction turns out to be incorrect, the ROB allows the processor to discard the speculative results.
+- **Handle Exceptions and Interrupts**: The ROB can manage exceptions and interrupts in a way that maintains program correctness by ensuring that only committed instructions affect the state.
+
+### Structure of the Reorder Buffer
+The ROB is typically a circular buffer, with each entry in the buffer corresponding to a single instruction. Each entry usually contains:
+- **Instruction Identifier**: A unique identifier for the instruction.
+- **Destination Register**: The architectural register or memory location where the result should be written.
+- **Result Value**: The result produced by the instruction.
+- **Completion Status**: A flag indicating whether the instruction has completed execution.
+- **Exception Status**: Information on whether the instruction caused an exception.
+
+### Operation of the Reorder Buffer
+1. **Instruction Issue**:
+    - When an instruction is issued, an entry is allocated in the ROB. This entry holds information about the instruction, such as its destination register.
+  
+2. **Instruction Execution**:
+    - As the instruction executes, it produces results. These results are written to the ROB entry rather than directly to the register file or memory.
+
+3. **Instruction Completion**:
+    - Once the instruction completes execution, its status in the ROB is updated to indicate that it has completed, and the result is available.
+
+4. **Instruction Commitment**:
+    - Instructions are committed in the order they were issued. The commit point in the ROB advances sequentially, ensuring that instructions update the architectural state (register file and memory) in program order.
+    - If the instruction at the head of the ROB is complete and has no exceptions, its result is written to the destination register or memory location, and the entry is retired from the ROB.
+    - If an instruction causes an exception, the processor can handle it appropriately without committing any subsequent instructions, maintaining a consistent state.
+
+    
+
+
+
+   #### Commit: 3 Different Possible Sequences
+
+   1. **Normal Commit**: 
+      - Instruction reaches the head of the ROB, result is present in the buffer. 
+      - Result is stored in the register.
+      - Instruction is removed from ROB.
+      
+   2. **Store Commit**: 
+      - As above, but memory rather than register is updated.
+      
+   3. **Instruction is a Branch with Incorrect Prediction**: 
+      - It indicates that speculation was wrong.
+      - ROB is flushed (“graduation”).
+      - Execution restarts at the correct successor of the branch.
+      - If the branch was correctly predicted, the branch is finished.
+
+---
+
+### Handling Speculative Execution
+- If a branch prediction turns out to be incorrect, the ROB allows the processor to discard all speculative instructions following the mispredicted branch. This involves invalidating the relevant ROB entries and rolling back the state to the last known good state.
+- Checkpoints may be used to facilitate this rollback, making it efficient to restore the processor state.
+
+### Example
+Consider a processor that has issued three instructions:
+1. **Instruction 1**: Load value into register R1.
+2. **Instruction 2**: Add values in registers R1 and R2, storing the result in R3.
+3. **Instruction 3**: Conditional branch based on the value in R3.
+
+- The ROB will allocate entries for each of these instructions as they are issued.
+- If Instruction 3 (the branch) is executed and predicts the branch taken path, subsequent instructions will execute speculatively.
+- The results of these instructions will be placed in the ROB.
+- If the branch prediction was correct, the speculative results are committed in order.
+- If the branch prediction was incorrect, the speculative results are discarded, and execution resumes from the correct branch target.
+
+### Benefits
+- **Performance**: By allowing out-of-order execution, the processor can better utilize its execution units, improving performance.
+- **Correctness**: The in-order commitment ensures that the final program state is correct, despite out-of-order execution.
+- **Flexibility**: The ROB helps manage speculative execution, making modern techniques like branch prediction more effective.
+
+In summary, the Reorder Buffer is essential for balancing the need for high performance through out-of-order and speculative execution with the requirement for correct program behavior through in-order commitment.
+
+## Separating Completion from Commit
+
+- **Re-order buffer holds register results from completion until commit**
+  - Entries allocated in program order during decode
+  - Buffers completed values and exception state until in-order commit point
+  - Completed values can be used by dependents before committed (bypassing)
+  - Each entry holds program counter, instruction type, destination register specifier and value if any, and exception status (info often compressed to save hardware)
+
+- **Memory reordering needs special data structures**
+  - Speculative store address and data buffers
+  - Speculative load address and data buffers
+
+
+
+
+## Each Entry in ROB Contains Four Fields:
+
+- **Instruction Type Field**:
+  - Indicates whether the instruction is a branch (no destination result), a store (has memory address destination), or a load/ALU (register destination).
+
+- **Destination Field**:
+  - Supplies register number (for loads and ALU instructions) or memory address (for stores) where results should be written.
+
+- **Value Field**:
+  - Used to hold value of result until the instruction commits.
+
+- **Ready Field**:
+  - Indicates that the instruction has completed execution, and the value is ready.
+
+</br>
+
+# PDF 13 - ILP
+
+## Explicit Register Renaming
+
+- **Tomasulo provides Implicit Register Renaming**:
+  - User registers renamed to reservation station tags
+
+- **Now we introduce Explicit Register Renaming**:
+  - Use physical register file that is larger than the number of registers specified by the ISA
+  - **Key insight**: Allocate a new physical destination register for every instruction that writes
+    - Very similar to a compiler transformation called Static Single Assignment (SSA) form—but in hardware!
+    - Removes all chance of WAR (Write After Read) or WAW (Write After Write) hazards
+    - Like Tomasulo, good for allowing full out-of-order completion
+    - Like hardware-based dynamic compilation?
+
+   
+
+            Explicit register renaming and hardware-based dynamic compilation serve different purposes but share some conceptual similarities in optimizing processor performance:
+
+            - **Explicit Register Renaming** allocates additional physical registers to eliminate hazards like Write After Read (WAR) or Write After Write (WAW), enabling efficient out-of-order execution within the processor.
+
+            - **Hardware-based Dynamic Compilation** optimizes code at runtime, using techniques like Just-In-Time (JIT) compilation to adapt to runtime conditions and improve overall performance.
+
+            While both techniques aim to enhance processor efficiency, explicit register renaming focuses on managing register dependencies within the execution pipeline, while hardware-based dynamic compilation targets higher-level code optimizations during runtime execution.
+
+
+
+
+## Explicit Register Renaming Mechanism:
+  - Keep a translation table:
+    - ISA register → physical register mapping
+  - When a register is written to, replace its entry with a new register from a free list
+  - Physical registers become free when not used by any active instructions
+
+
+
+## Unified Physical Register File
+
+- **Mechanism**:
+  - Rename all architectural registers into a single physical register file during decode, without reading register values.
+  - Functional units read and write from a single unified register file that holds committed and temporary registers during execution.
+  - Commit only updates the mapping of architectural registers to physical registers; no actual data movement occurs during commit.
+
+   ### Explanation:
+
+- **Unified Physical Register File**: Instead of maintaining separate sets of registers for architectural (visible to the programmer) and physical (used internally for execution), this approach merges them into a single unified register file.
+  
+- **During Decode**: When instructions are decoded, architectural registers are mapped to specific physical registers. This mapping allows instructions to proceed with their execution using these physical registers.
+
+- **Execution Phase**: Functional units (ALUs, load/store units, etc.) perform operations directly on the unified register file. They read operands from and write results back to this unified file, whether the data corresponds to committed (architectural) registers or temporary registers used internally by the processor.
+
+- **Commit Phase**: When instructions complete execution and are ready to commit their results, only the mapping of architectural registers to physical registers is updated. This ensures that the architectural state of the processor accurately reflects the committed results without physically moving large amounts of data.
+
+This approach reduces complexity in managing register states within the processor, supports efficient out-of-order execution, and simplifies the handling of architectural state updates during the commit phase.
+
+
+
+## HW Register Renaming
+
+- **Renaming Map**:
+  - A simple data structure that provides the physical register number corresponding to the requested architectural register.
+  
+- **Instruction Commit**:
+  - Updates the renaming table permanently to indicate that the physical register holding the destination value now corresponds to the actual architectural register.
+  
+- **Use of ROB**:
+  - Utilizes the Reorder Buffer (ROB) to enforce in-order commit, ensuring that instructions are committed in the sequence they were issued.
+
+
+
+This setup ensures efficient management of register dependencies and supports out-of-order execution while maintaining the integrity of architectural state updates during the commit phase.
+
+## Stages of Scoreboard Control With Explicit Renaming
+
+
+
+### Execution Pipeline Overview
+
+- **Issue**:
+  - Decode instructions & check for structural hazards.
+  - Allocate new physical register for result.
+  - Instructions issued in program order (for hazard checking).
+  - Don’t issue if no free physical registers.
+  - Don’t issue if there is a structural hazard.
+
+- **Read Operands**:
+  - Wait until no hazards; read operands.
+  - All real dependencies (RAW hazards) resolved in this stage, as we wait for instructions to write back data.
+
+- **Execution**:
+  - Operate on operands.
+  - The functional unit begins execution upon receiving operands. When the result is ready, it notifies the scoreboard.
+
+- **Write Result**:
+  - Finish execution.
+
+- **Note**: No checks for WAR (Write After Read) or WAW (Write After Write) hazards in this overview.
+
+
+
+This structured approach outlines the stages in the execution pipeline, emphasizing hazard checking, operand handling, execution, and result writing, crucial for managing the flow of instructions and ensuring correct and efficient processing in advanced computer architectures.
+
+> register renaming typically eliminates Write After Write (WAW) and Write After Read (WAR) hazards in modern processors when combined with appropriate hazard detection mechanisms like scoreboarding.
+
+
+
+## Register Renaming vs. ROB
+
+- **Instruction Commit**:
+  - Simpler than with ROB.
+
+- **Deallocating Registers**:
+  - More complex.
+
+- **Dynamic Mapping**:
+  - Dynamic mapping of architectural to physical registers complicates design and debugging.
+
+- **Usage**:
+  - Used in:
+    - PowerPC 603/604
+    - Pentium II-III-IV
+    - MIPS 10000/12000
+    - Alpha 21264
+    - Sandy Bridge (20 to 80 registers added)
+
+
+Certainly! Here’s the formatted text:
+
+
+
+## Summary
+
+- **More Physical Registers**: 
+  - More physical registers than needed by the ISA.
+  
+- **Rename Table**: 
+  - Tracks current association between architectural registers and physical registers.
+  - Uses a translation table to perform compiler-like transformations on the fly.
+
+- **With Explicit Renaming**:
+  - All registers concentrated in a single register file.
+  - Can utilize a bypass network resembling a 5-stage pipeline.
+  - Introduces a register allocation problem.
+
+- **Handling Branch Misprediction and Precise Exceptions**:
+  - Requires different handling, but ultimately simplifies operations.
+
+- **For Precise Exceptions and Branch Prediction**:
+  - Clearly requires a component like a reorder buffer.
+
+
+
+This structure outlines how explicit renaming enhances processor performance by efficiently managing register allocation and simplifying complex operations like branch prediction and exception handling.
+
+</br>
+
+# PDF 14 - Instruction Level Parallelism: Limits
+
+### Limits to ILP
+
+**Assumptions for an ideal/perfect machine to start:**
+
+1. **Register renaming**  
+   - Infinite virtual registers, avoiding all WAW (Write After Write) and WAR (Write After Read) hazards.
+
+2. **Branch prediction**  
+   - Perfect, with no mispredictions.
+
+3. **Jump prediction**  
+   - All jumps perfectly predicted, resulting in a machine with perfect speculation and an unbounded buffer of instructions available.
+
+4. **Memory-address alias analysis**  
+   - Addresses are known, and a store can be moved before a load provided the addresses are not equal.
+
+5. **1 cycle latency for all instructions**  
+   - An unlimited number of instructions issued per clock cycle.
+
+
+## Initial Assumptions
+
+- **Unlimited instruction issue**  
+  - The CPU can issue an unlimited number of instructions at once, looking arbitrarily far ahead in computation.
+
+- **No instruction type restrictions**  
+  - There are no restrictions on the types of instructions that can be executed in one cycle, including loads and stores.
+
+- **Functional unit latencies**  
+  - All functional unit latencies are 1 cycle, allowing any sequence of dependent instructions to issue on successive cycles.
+
+- **Perfect caches**  
+  - All loads and stores execute in one cycle, meaning only the fundamental limits to ILP are taken into account.
+
+- **Note**  
+  - The results obtained under these assumptions are VERY optimistic, as no such CPU can be realized.
+
+- **Benchmark programs**  
+  - Six programs from SPEC92 were used, including three FP-intensive ones and three integer ones.
+
+
+## Limits on Window Size
+
+- **Dynamic analysis necessity**  
+  - Dynamic analysis is essential to approach perfect branch prediction, which is impossible to achieve at compile time.
+
+- **Requirements for a perfect dynamically-scheduled CPU:**
+  1. **Instruction lookahead and branch prediction**  
+     - Look arbitrarily far ahead to find a set of instructions to issue and predict all branches perfectly.
+  
+  2. **Register renaming**  
+     - Rename all register uses to avoid WAW (Write After Write) and WAR (Write After Read) hazards.
+  
+  3. **Data dependency determination**  
+     - Determine whether there are data dependencies among instructions in the issue packet and rename registers if necessary.
+  
+  4. **Memory dependency handling**  
+     - Determine if memory dependencies exist among issuing instructions and handle them accordingly.
+  
+  5. **Functional unit replication**  
+     - Provide enough replicated functional units to allow all ready instructions to issue.
+
+
+## Limits on Instruction Windows
+
+- **Impact of Window Size**  
+  - The size of the instruction window affects the number of comparisons necessary to determine Read After Write (RAW) dependencies.
+  
+- **Example: Comparisons for Data Dependencies**  
+  - To evaluate data dependencies among \( n \) register-to-register instructions in the issue phase (with an infinite number of registers):
+  Number of Comparisons = (n * (n - 1)) 
+    - **Window size = 2000**
+      - This requires almost 4 million comparisons!
+    - **Issue window of 50 instructions**
+      - This requires 2450 comparisons!
+
+- **Constraints in Today’s CPUs**
+  - The limited number of registers.
+  - The need to search for dependent instructions.
+  - The necessity to issue instructions in order.
+
+### Limits on Window Size and Maximum Issue Count
+
+- **Instruction Retention**
+  - All instructions in the window must be stored within the processor.
+
+- **Comparison Requirements**
+  - The number of comparisons required at each cycle is calculated as:
+
+    ```
+    Maximum completion rate × Window size × Number of operands per instruction
+    ```
+  
+- **Constraints on Window Size**
+  - The total window size is limited by:
+  ```
+    Storage capacity. + The number of comparisons needed. + The limited issue rate.
+    ```
+  
+- **Current CPU Capabilities**
+  - Modern CPUs have window sizes ranging from 32 to 200, resulting in up to over 2400 comparisons per cycle.
+
+## Other Limits of Today’s CPUs
+
+- **Number of Functional Units**
+  - For example, not more than 2 memory references can be handled per cycle.
+
+- **Number of Buses**
+
+- **Number of Ports for the Register File**
+
+These limitations mean that the maximum number of instructions that can be issued, executed, or committed in the same clock cycle is much smaller than the window size.
+
+## Current Superscalar & VLIW processors
+
+- Dynamically-scheduled superscalar processors are the commercial
+state-of-the-art for general purpose: current implementations of Intel
+Core
+i
+, PowerPC, Alpha, MIPS, SPARC, etc. are all superscalar
+
+- VLIW processors are primarily successful as embedded media
+processors for consumer electronic devices
+
+## Taxonomy of Multiple Issue Machines
+
+Here's the updated table without SIMD and including the three types of Superscalar architectures:
+
+| **Common Name**                  | **Issue Structure**                   | **Hazard Detection**              | **Scheduling**                | **Distinguishing Characteristics**                                                                                               | **Examples**                            |
+|----------------------------------|---------------------------------------|-----------------------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| **Superscalar (Static)**       | Multiple instructions per cycle       | Dynamic (at runtime)              | In-order                      | Issues multiple instructions per cycle but executes them in program order; simpler pipeline design compared to out-of-order superscalar | Intel Pentium, ARM Cortex-A5             |
+| **Superscalar (Dynamic)**   | Multiple instructions per cycle       | Dynamic (at runtime)              | Out-of-order                  | Issues and executes instructions out of program order to maximize pipeline utilization and performance; sophisticated hazard detection and handling | Intel Core i7, AMD Ryzen                |
+| **Superscalar (Speculative)**    | Multiple instructions per cycle       | Dynamic (at runtime)              | Speculative                   | Executes instructions speculatively based on predictions to achieve higher performance; handles mispredictions carefully to maintain correctness | Intel Pentium Pro, ARM Cortex-A76        |
+| **VLIW (Very Long Instruction Word)** | Single instruction with multiple operations | Static (at compile time)         | Parallel (by compiler)        | Combines multiple operations into a single instruction word; requires compiler to schedule operations and ensure no dependencies    | Intel Itanium, TI TMS320C6x             |
+| **EPIC (Explicitly Parallel Instruction Computing)** | Multiple independent instructions issued together | Static (compiler determines)    | Parallel (by compiler)        | Employs a wide-issue architecture; relies on compiler to identify and schedule independent instructions for simultaneous execution   | Intel IA-64 (Itanium), HP PA-8000        |
+
+
+
+### Limits to ILP
+
+
+Increasing processor performance typically raises power consumption due to the overhead incurred by most techniques. The critical consideration is whether a technique is energy-efficient—does it boost performance faster than it escalates power use?
+
+Multiple issue processors exemplify energy inefficiency:
+- Issuing multiple instructions involves increasing logic overhead that outpaces the growth in issue rates.
+- This results in a widening gap between peak issue rates and sustained performance.
+- The number of transistors switching increases with the peak issue rate, while performance correlates with the sustained rate, further widening the energy per unit of performance.
+
+For instance, the Itanium 2, despite its wide issue capabilities, operates at a slower clock rate and consumes more power, highlighting the trade-offs between performance enhancement and energy efficiency in modern processors.
+
+
+## Parallel Architectures
+
+- **Definition:**
+  - "A parallel computer is a collection of processing elements that cooperates and communicates to solve large problems fast."
+  - *(Almasi and Gottlieb, Highly Parallel Computing, 1989)*
+
+- The goal is to replicate processors to enhance performance rather than designing a faster single processor.
+
+- Parallel architecture extends traditional computer architecture with a **communication architecture**:
+  - Abstractions for hardware/software interfaces.
+  - Utilizes various structures to efficiently realize these abstractions.
+
+### the four types in Flynn's taxonomy of parallel computer architectures:
+
+| **Category**              | **Description**                                                                                                                                               | **Characteristic**                                                                                         | **Examples**                                                                                       |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| **SISD (Single Instruction, Single Data)** | Traditional von Neumann architecture where a single instruction operates on a single data stream.                                                             | Sequential execution of instructions on a single processor.                                                | Classic CPUs (e.g., early computers like ENIAC, modern desktop/laptop processors).                   |
+| **SIMD (Single Instruction, Multiple Data)** | Executes the same instruction simultaneously on multiple data points.                                                                                         | Parallel execution with a single control unit issuing instructions to multiple processing elements.     | GPU shaders, SIMD extensions in CPUs (e.g., Intel SSE, ARM NEON).                                     |
+| **MISD (Multiple Instruction, Single Data)** | Rarely implemented; multiple instructions operate on a single data stream.                                                                                    | Concurrency achieved through different processing units applying different operations to the same data. | Hypothetical or experimental architectures (not commonly found in practical systems).               |
+| **MIMD (Multiple Instruction, Multiple Data)** | Multiple processors executing different instructions on different data streams concurrently.                                                                    | Highest level of parallelism with multiple independent processors working on multiple sets of data.    | Clusters of workstations, modern multi-core processors, distributed computing systems (e.g., HPC clusters). |
+
+This table summarizes Flynn's taxonomy, distinguishing each category by its operational characteristics, mode of instruction/data processing, and examples of real-world implementations or theoretical constructs.
+
